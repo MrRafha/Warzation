@@ -78,6 +78,7 @@ Backend/
     config/          Configuração da aplicação
     domain/          Regras e entidades do jogo
     infrastructure/ Persistência, relógio e integrações externas
+    main/resources/  Configuração e dados de execução
     realtime/        Gateway de sincronização em tempo real
   tests/             Testes do servidor e do domínio
 
@@ -123,10 +124,11 @@ Os detalhes e responsabilidades da stack estão em
 - [Militar e combate](Docs/MILITAR_E_COMBATE.md)
 - [Logística e cercos](Docs/LOGISTICA_E_CERCOS.md)
 - [Diplomacia, mercado e vitória](Docs/DIPLOMACIA_MERCADO_E_VITORIA.md)
+- [Stack técnica](Docs/STACK_TECNICA.md)
+- [Guia de desenvolvimento local](Docs/GUIA_DESENVOLVIMENTO_LOCAL.md)
 
 ## Próximo passo
 
 Configurar os projetos Spring Boot e React/Vite e iniciar a Fase 0: mapa de
 teste com 8–12 províncias, modelo inicial de província e nação, dados
 configuráveis e protótipo visual para seleção de províncias.
->>>>>>> 37cff08 (Add initial documentation and project structure for Warzation)

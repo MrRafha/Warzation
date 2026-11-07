@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/warzation
+    username: seu_usuario_local
+    password: sua_senha_local
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: 8080
+
+# Copie este arquivo para application-local.yml e substitua os valores locais.
+# Nunca versione credenciais reais.
