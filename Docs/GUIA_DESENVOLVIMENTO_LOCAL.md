@@ -41,7 +41,14 @@ O serviço do PostgreSQL deve estar iniciado antes do Backend.
 
 ### Backend
 
-Quando o projeto Spring Boot estiver criado, copie:
+Quando o projeto Spring Boot estiver criado, configure o Maven localmente e
+confirme:
+
+```powershell
+mvn -version
+```
+
+Depois copie:
 
 ```powershell
 Copy-Item Backend\src\main\resources\application-local.example.yml `
@@ -69,7 +76,7 @@ Após a criação dos manifests na Sprint 1:
 ```powershell
 # Backend
 Set-Location Backend
-.\mvnw.cmd spring-boot:run
+mvn spring-boot:run
 
 # Frontend, em outro terminal
 Set-Location Frontend
@@ -87,7 +94,7 @@ Backend:
 
 ```powershell
 Set-Location Backend
-.\mvnw.cmd test
+mvn test
 ```
 
 Frontend:

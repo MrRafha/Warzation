@@ -71,7 +71,7 @@ completas, população individual e aplicativo móvel ficam fora do MVP.
 
 ```text
 Backend/
-  pom.xml            Projeto Java 21/Spring Boot
+  pom.xml            Projeto Maven com Java 21/Spring Boot
   data/              Dados configuráveis do mundo e das regras
   src/
     application/     Casos de uso e orquestração
@@ -83,7 +83,7 @@ Backend/
   tests/             Testes do servidor e do domínio
 
 Frontend/
-  package.json       Projeto React/TypeScript/Vite
+  package.json       Projeto npm com React/TypeScript/Vite
   public/            Arquivos públicos e assets
   src/
     components/      Componentes visuais compartilhados

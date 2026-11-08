@@ -4,7 +4,7 @@
 
 | Área | Tecnologia |
 |---|---|
-| Backend | Java 21 + Spring Boot |
+| Backend | Java 21 + Spring Boot + Maven instalado localmente |
 | Frontend | React + TypeScript + Vite |
 | Banco de dados | PostgreSQL |
 | Comunicação em tempo real | WebSocket |
@@ -61,6 +61,9 @@ um arquivo de exemplo deverá documentar os nomes esperados.
 - `Frontend/`: aplicação React/Vite, componentes, telas e cliente WebSocket.
 - `Backend/data/`: dados configuráveis do mapa e regras do jogo.
 - `Docs/`: decisões de produto, regras de domínio e contratos técnicos.
+
+O Maven deve estar instalado localmente e disponível no `PATH`. Os comandos
+do Backend usam `mvn` diretamente.
 
 ## Critérios para a primeira implementação
 
