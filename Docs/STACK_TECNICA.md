@@ -65,6 +65,13 @@ um arquivo de exemplo deverá documentar os nomes esperados.
 O Maven deve estar instalado localmente e disponível no `PATH`. Os comandos
 do Backend usam `mvn` diretamente.
 
+O PostgreSQL é o banco de produção/desenvolvimento local. O perfil `test` usa
+um banco H2 em memória apenas para testes automatizados rápidos; a migration
+do PostgreSQL continua versionada separadamente em `src/main/resources`.
+
+As migrations do schema são gerenciadas pelo Flyway. O Backend não deve criar
+ou alterar tabelas automaticamente via Hibernate.
+
 ## Critérios para a primeira implementação
 
 1. O backend inicia e conecta ao PostgreSQL local.

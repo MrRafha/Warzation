@@ -114,6 +114,9 @@ GitHub para versionamento, em instalação local sem Docker.
 Os detalhes e responsabilidades da stack estão em
 [STACK_TECNICA.md](Docs/STACK_TECNICA.md).
 
+O Backend já possui persistência inicial com PostgreSQL/Flyway e o contrato
+HTTP inicial em `/api/v1/health` e `/api/v1/metadata`.
+
 ## Documentação
 
 - [Contexto do projeto](Docs/01_CONTEXTO_DO_PROJETO.md)

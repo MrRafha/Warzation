@@ -1,6 +1,17 @@
 spring:
   application:
     name: warzation-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/warzation}
+    username: ${DB_USERNAME:warzation_dev}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
 server:
   port: 8080

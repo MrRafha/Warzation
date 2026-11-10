@@ -1,8 +1,6 @@
 # Guia de desenvolvimento local
 
 Este guia prepara o ambiente para o desenvolvimento do Warzation sem Docker.
-Os comandos de execução do Backend e do Frontend dependem dos manifests que
-serão criados nas Issues da Sprint 1.
 
 ## Pré-requisitos
 
@@ -41,8 +39,7 @@ O serviço do PostgreSQL deve estar iniciado antes do Backend.
 
 ### Backend
 
-Quando o projeto Spring Boot estiver criado, configure o Maven localmente e
-confirme:
+Configure o Maven localmente e confirme:
 
 ```powershell
 mvn -version
@@ -71,8 +68,6 @@ alteradas. O arquivo `.env` também é ignorado pelo Git.
 
 ## Executar as aplicações
 
-Após a criação dos manifests na Sprint 1:
-
 ```powershell
 # Backend
 Set-Location Backend
@@ -84,9 +79,9 @@ npm install
 npm run dev
 ```
 
-Enquanto os manifests ainda não existirem, esses comandos não estarão
-disponíveis. A estrutura e os exemplos de configuração já estão preparados
-para recebê-los.
+O Backend aplica as migrations Flyway ao iniciar. Se o PostgreSQL estiver
+parado ou as credenciais estiverem incorretas, a aplicação falhará no startup
+com uma mensagem de conexão no log; corrija a configuração e execute novamente.
 
 ## Executar testes
 
@@ -97,6 +92,16 @@ Set-Location Backend
 mvn test
 ```
 
+Os testes usam o perfil `test` e um banco H2 em memória. Para validar a conexão
+real com PostgreSQL, inicie o serviço, configure `DB_URL`, `DB_USERNAME` e
+`DB_PASSWORD` e execute:
+
+```powershell
+Set-Location Backend
+$env:SPRING_PROFILES_ACTIVE = "local"
+mvn test
+```
+
 Frontend:
 
 ```powershell
@@ -104,8 +109,31 @@ Set-Location Frontend
 npm test
 ```
 
-Os comandos serão confirmados ou ajustados quando os projetos Spring Boot e
-Vite forem inicializados.
+O teste de integração da API grava e lê metadata usando a camada de
+persistência. A migration PostgreSQL é aplicada automaticamente no perfil
+local.
+
+## Contrato inicial da API
+
+### Saúde
+
+```text
+GET /actuator/health
+GET /api/v1/health
+```
+
+`/api/v1/health` retorna `200` com `status`, `service` e `version`.
+
+### Metadata de persistência
+
+```text
+POST /api/v1/metadata
+GET  /api/v1/metadata/{key}
+```
+
+O POST exige `key` e `value`. Erros de validação retornam `400` com `code`,
+`message`, `path`, `timestamp` e `fields`. Erros internos não expõem stack
+traces ou credenciais.
 
 ## Problemas comuns
 

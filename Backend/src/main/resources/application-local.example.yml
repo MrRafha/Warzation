@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/warzation
-    username: seu_usuario_local
-    password: sua_senha_local
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/warzation}
+    username: ${DB_USERNAME:warzation_dev}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -11,5 +11,6 @@ spring:
 server:
   port: 8080
 
-# Copie este arquivo para application-local.yml e substitua os valores locais.
+# Ative este perfil com --spring.profiles.active=local.
+# Defina DB_PASSWORD no ambiente ou substitua os valores apenas localmente.
 # Nunca versione credenciais reais.
