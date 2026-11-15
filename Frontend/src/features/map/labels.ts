@@ -22,3 +22,18 @@ export const terrainColor: Record<string, string> = {
 };
 
 export const DEFAULT_TERRAIN_COLOR = "#4a5560";
+
+export const NEUTRAL_COLOR = "#4a5560";
+export const NATION_COLORS = ["#3f8f73", "#c78a3b", "#5b7fc7", "#b0566a", "#8a6fc2", "#6b9e3a"];
+
+export const unitLabel: Record<string, string> = {
+  INFANTARIA_BASICA: "Infantaria básica",
+};
+
+export const stockLabel: Record<string, string> = {
+  COMIDA: "Comida",
+  PEDRA: "Pedra",
+  METAL: "Metal",
+  DINHEIRO: "Dinheiro",
+  PETROLEO: "Petróleo",
+};

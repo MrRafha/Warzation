@@ -39,7 +39,8 @@ export class RealtimeClient {
   private readonly createSocket: SocketFactory;
   private readonly token: string | null;
   private socket: SocketLike | null = null;
-  private roomId: string | null = null;
+  /** Canal a (re)assinar a cada conexão: sala de teste ou partida. */
+  private subscription: { type: string; payload: unknown } | null = null;
   private retryMs = INITIAL_RETRY_MS;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
@@ -80,8 +81,17 @@ export class RealtimeClient {
 
   /** Entra na sala agora (se conectado) e de novo a cada reconexão. */
   joinRoom(roomId: string): string | null {
-    this.roomId = roomId;
-    return this.send("JOIN_ROOM", { roomId });
+    return this.subscribe("JOIN_ROOM", { roomId });
+  }
+
+  /** Entra no canal da partida agora (se conectado) e de novo a cada reconexão. */
+  joinMatch(matchId: string): string | null {
+    return this.subscribe("JOIN_MATCH", { matchId });
+  }
+
+  private subscribe(type: string, payload: unknown): string | null {
+    this.subscription = { type, payload };
+    return this.send(type, payload);
   }
 
   /** Envia uma mensagem e devolve seu id, ou null se o socket não estiver aberto. */
@@ -120,8 +130,8 @@ export class RealtimeClient {
       if (this.token) {
         this.send("AUTHENTICATE", { token: this.token });
       }
-      if (this.roomId) {
-        this.send("JOIN_ROOM", { roomId: this.roomId });
+      if (this.subscription) {
+        this.send(this.subscription.type, this.subscription.payload);
       }
     };
 

@@ -308,7 +308,8 @@ h1 {
 .province-panel,
 .province-list,
 .dev-tools,
-.match-lobby {
+.match-lobby,
+.match-header {
   padding: 1.25rem;
   border: 1px solid rgb(238 244 241 / 14%);
   border-radius: 1rem;
@@ -518,3 +519,59 @@ h1 {
   font-size: 0.85rem;
 }
 
+
+.match-header {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+
+.match-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.match-header p {
+  margin: 0;
+}
+
+.match-header .nation-slots {
+  width: 100%;
+}
+
+.primary-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #7ed6b2;
+  border-radius: 0.5rem;
+  background: #7ed6b2;
+  color: #101820;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.match-history {
+  width: 100%;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(238 244 241 / 10%);
+}
+
+.match-history h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.match-history ol {
+  display: grid;
+  gap: 0.3rem;
+  max-height: 12rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  list-style: none;
+}

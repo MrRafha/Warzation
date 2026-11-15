@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { ConnectionStatus } from "./features/connection/ConnectionStatus";
 import { useBackendHealth } from "./features/connection/useBackendHealth";
 import { DevRoomPanel } from "./features/devRoom/DevRoomPanel";
@@ -7,6 +7,7 @@ import { loadScenarioFromApi } from "./features/map/scenario";
 import { PlayerBar } from "./features/player/PlayerBar";
 import { usePlayerSession, type PlayerSession } from "./features/player/usePlayerSession";
 import { MatchLobby } from "./features/match/MatchLobby";
+import { MatchScreen } from "./features/match/MatchScreen";
 import { createApiClient } from "./lib/apiClient";
 import { readConfig, type AppConfig } from "./lib/config";
 import { readStoredToken } from "./lib/playerSession";
@@ -38,6 +39,12 @@ function ConnectedApp({ config }: { config: AppConfig }) {
   const { session, login, logout } = usePlayerSession(api);
   const online = health.status === "online";
   const playerId = session.status === "authenticated" ? session.player.id : null;
+  const [openMatchId, setOpenMatchId] = useState<string | null>(null);
+  const token = session.status === "authenticated" ? session.token : null;
+  const matchRealtime = useMemo(
+    () => (openMatchId && token ? new RealtimeClient(config.wsUrl, undefined, token) : null),
+    [config.wsUrl, openMatchId, token],
+  );
 
   return (
     <Layout
@@ -51,7 +58,24 @@ function ConnectedApp({ config }: { config: AppConfig }) {
       }
       main={
         online ? (
-          <MapScreen loadScenario={loadScenario} aside={<MatchLobby key={playerId ?? "anonimo"} api={api} playerId={playerId} />} />
+          openMatchId && playerId ? (
+            <MatchScreen
+              key={`${openMatchId}:${playerId}`}
+              api={api}
+              matchId={openMatchId}
+              playerId={playerId}
+              loadScenario={loadScenario}
+              onBack={() => setOpenMatchId(null)}
+              realtime={matchRealtime}
+            />
+          ) : (
+            <MapScreen
+              loadScenario={loadScenario}
+              aside={
+                <MatchLobby key={playerId ?? "anonimo"} api={api} playerId={playerId} onOpen={setOpenMatchId} />
+              }
+            />
+          )
         ) : (
           health.status === "offline" && (
             <p className="muted map-placeholder">O mapa aparece quando o Backend estiver conectado.</p>

@@ -40,6 +40,22 @@ describe("RealtimeClient", () => {
     expect(FakeSocket.latest().sent.map((m) => m.type)).toEqual(["AUTHENTICATE", "JOIN_ROOM"]);
   });
 
+  it("reassina o canal da partida ao reconectar", () => {
+    const client = new RealtimeClient("ws://test/ws", fakeSocketFactory, "meu-token");
+    client.joinMatch("m1");
+    client.connect();
+    FakeSocket.latest().serverOpen();
+    expect(FakeSocket.latest().sent.map((m) => [m.type, m.payload])).toEqual([
+      ["AUTHENTICATE", { token: "meu-token" }],
+      ["JOIN_MATCH", { matchId: "m1" }],
+    ]);
+
+    FakeSocket.latest().serverDrop();
+    vi.advanceTimersByTime(1000);
+    FakeSocket.latest().serverOpen();
+    expect(FakeSocket.latest().sent.map((m) => m.type)).toEqual(["AUTHENTICATE", "JOIN_MATCH"]);
+  });
+
   it("repassa mensagens válidas e ignora as inválidas", () => {
     const client = new RealtimeClient("ws://test/ws", fakeSocketFactory);
     const received: ServerMessage[] = [];

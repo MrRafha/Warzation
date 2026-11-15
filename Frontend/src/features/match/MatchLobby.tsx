@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ApiError, type ApiClient } from "../../lib/apiClient";
 import { DEFAULT_SCENARIO_ID } from "../map/scenario";
-import { createMatch, joinMatch, listOpenMatches } from "./matchApi";
+import { createMatch, joinMatch, listMatches } from "./matchApi";
 import type { MatchView } from "./types";
+
+export const LOBBY_REFRESH_MS = 10_000;
 
 type Props = {
   api: ApiClient;
   playerId: string | null;
+  /** Abre a partida no mapa (só para quem participa). */
+  onOpen?: (matchId: string) => void;
 };
 
 /**
- * Lobby provisório: lista partidas abertas, cria e entra escolhendo uma nação.
- * Atualiza ao agir ou no botão; a sincronização em tempo real vem com a #20.
+ * Lobby: partidas abertas e as partidas em andamento do jogador. Cria, entra
+ * escolhendo uma nação e abre a partida no mapa.
  */
-export function MatchLobby({ api, playerId }: Props) {
+export function MatchLobby({ api, playerId, onOpen }: Props) {
   const [matches, setMatches] = useState<MatchView[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -22,7 +26,14 @@ export function MatchLobby({ api, playerId }: Props) {
 
   const refresh = useCallback(async () => {
     try {
-      setMatches(await listOpenMatches(api));
+      const all = await listMatches(api);
+      setMatches(
+        all.filter(
+          (match) =>
+            match.status === "OPEN" ||
+            (match.status === "STARTED" && match.participants.some((p) => p.playerId === playerId)),
+        ),
+      );
       setListError(null);
     } catch (caught) {
       setListError(message(caught));
@@ -31,6 +42,9 @@ export function MatchLobby({ api, playerId }: Props) {
 
   useEffect(() => {
     void refresh();
+    // Lista leve: atualiza periodicamente; o estado da partida em si vem pelo WebSocket.
+    const timer = setInterval(() => void refresh(), LOBBY_REFRESH_MS);
+    return () => clearInterval(timer);
   }, [refresh]);
 
   async function run(action: () => Promise<unknown>) {
@@ -57,7 +71,7 @@ export function MatchLobby({ api, playerId }: Props) {
   return (
     <section className="match-lobby" aria-labelledby="lobby-title">
       <div className="lobby-header">
-        <h2 id="lobby-title">Partidas abertas</h2>
+        <h2 id="lobby-title">Partidas</h2>
         <button type="button" className="link-button" onClick={() => void refresh()} disabled={busy}>
           Atualizar
         </button>
@@ -75,7 +89,7 @@ export function MatchLobby({ api, playerId }: Props) {
                 <strong>{match.name}</strong>
                 <span className="muted">
                   {" "}
-                  · {match.participants.length}/{match.maxPlayers} jogadores
+                  · {match.status === "STARTED" ? "em andamento" : `${match.participants.length}/${match.maxPlayers} jogadores`}
                 </span>
               </p>
               <ul className="nation-slots">
@@ -86,7 +100,7 @@ export function MatchLobby({ api, playerId }: Props) {
                       <span>{nation.name}</span>
                       {holder ? (
                         <span className="muted">{holder.playerId === playerId ? "você" : holder.playerName}</span>
-                      ) : playerId && !mine ? (
+                      ) : playerId && !mine && match.status === "OPEN" ? (
                         <button
                           type="button"
                           className="link-button"
@@ -103,7 +117,16 @@ export function MatchLobby({ api, playerId }: Props) {
                   );
                 })}
               </ul>
-              {mine && <p className="match-mine">Você está nesta partida.</p>}
+              {mine && (
+                <p className="match-mine">
+                  Você está nesta partida.{" "}
+                  {onOpen && (
+                    <button type="button" className="link-button" onClick={() => onOpen(match.id)}>
+                      Abrir partida
+                    </button>
+                  )}
+                </p>
+              )}
             </li>
           );
         })}

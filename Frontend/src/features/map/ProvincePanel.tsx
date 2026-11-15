@@ -1,17 +1,19 @@
 import { abundanceLabel, resourceLabel } from "./labels";
-import type { Scenario } from "./types";
+import type { ProvinceDetails, Scenario } from "./types";
 
 type Props = {
   scenario: Scenario;
   provinceId: string | null;
   onSelect: (provinceId: string) => void;
+  /** Dados da partida; sem eles, dono, unidades e estoque aparecem vazios. */
+  details?: ProvinceDetails;
 };
 
 /**
  * Dados de uma província. Dono, construções e estoque são estado de partida;
  * sem partida ativa, aparecem vazios em vez de inventados.
  */
-export function ProvincePanel({ scenario, provinceId, onSelect }: Props) {
+export function ProvincePanel({ scenario, provinceId, onSelect, details }: Props) {
   const province = provinceId ? scenario.provinces.get(provinceId) : undefined;
 
   if (!province) {
@@ -39,7 +41,20 @@ export function ProvincePanel({ scenario, provinceId, onSelect }: Props) {
         </dd>
 
         <dt>Dono</dt>
-        <dd>Neutra (sem partida ativa)</dd>
+        <dd>{details ? (details.owner?.label ?? "Neutra") : "Neutra (sem partida ativa)"}</dd>
+
+        {details && (
+          <>
+            <dt>Unidades</dt>
+            <dd>
+              {details.units.length === 0
+                ? "Nenhuma"
+                : details.units
+                    .map((unit) => `${unit.quantity}× ${unit.label}${unit.neutral ? " (guarnição neutra)" : ""}`)
+                    .join(", ")}
+            </dd>
+          </>
+        )}
 
         <dt>Terreno</dt>
         <dd>{scenario.terrainNames.get(province.terrain) ?? province.terrain}</dd>
@@ -63,7 +78,13 @@ export function ProvincePanel({ scenario, provinceId, onSelect }: Props) {
         <dd>Nenhuma</dd>
 
         <dt>Estoque</dt>
-        <dd>— (definido na partida)</dd>
+        <dd>
+          {!details
+            ? "— (definido na partida)"
+            : details.stock.length === 0
+              ? "Vazio"
+              : details.stock.map((item) => `${item.label} ${item.amount}`).join(", ")}
+        </dd>
       </dl>
 
       <h3>Conexões ({neighbours.length})</h3>

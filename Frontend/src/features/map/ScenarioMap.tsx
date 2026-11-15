@@ -1,16 +1,17 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
-import { DEFAULT_TERRAIN_COLOR, terrainColor } from "./labels";
+import { DEFAULT_TERRAIN_COLOR, NEUTRAL_COLOR, terrainColor } from "./labels";
 import { createProjection, stateBorderPath, toPath } from "./projection";
-import type { Scenario } from "./types";
+import type { MapOverlay, Scenario } from "./types";
 
 type Props = {
   scenario: Scenario;
   selectedId: string | null;
   onSelect: (provinceId: string) => void;
+  overlay?: MapOverlay;
 };
 
 /** Mapa em SVG. Só desenha e reporta seleção; nenhuma regra de jogo fica aqui. */
-export function ScenarioMap({ scenario, selectedId, onSelect }: Props) {
+export function ScenarioMap({ scenario, selectedId, onSelect, overlay }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const drawing = useMemo(() => {
@@ -56,7 +57,11 @@ export function ScenarioMap({ scenario, selectedId, onSelect }: Props) {
               key={province.id}
               d={path}
               className={classes.join(" ")}
-              fill={terrainColor[province.terrain] ?? DEFAULT_TERRAIN_COLOR}
+              fill={
+                overlay
+                  ? (overlay.details.get(province.id)?.owner?.color ?? NEUTRAL_COLOR)
+                  : (terrainColor[province.terrain] ?? DEFAULT_TERRAIN_COLOR)
+              }
               role="button"
               tabIndex={0}
               aria-label={`${province.name}, ${scenario.stateNames.get(province.state) ?? province.state}`}
