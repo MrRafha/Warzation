@@ -129,6 +129,9 @@ Todas as rotas da aplicação ficam sob `/api/v1`. O corpo é sempre JSON.
 | `GET /api/v1/matches/{id}` | Partida com participantes e nações (livres ou de quem). | `200` |
 | `POST /api/v1/matches` | Cria partida: `{ commandId, scenarioId, name? }` (exige identificação). | `201` criada, `200` reenvio |
 | `POST /api/v1/matches/{id}/participants` | Entra escolhendo nação: `{ commandId, nationId }` (exige identificação). | `201` entrou, `200` reenvio |
+| `POST /api/v1/matches/{id}/start` | Inicia a partida e aplica a posição inicial: `{ commandId }` (só quem criou). | `201` iniciou, `200` reenvio |
+| `GET /api/v1/matches/{id}/state` | Estado territorial: dono, unidades e estoque de cada província (só participantes). | `200` |
+| `GET /api/v1/matches/{id}/events` | Histórico em ordem (participantes e quem criou). | `200` |
 | `GET /api/v1/scenarios` | Lista os cenários carregados. | `200` |
 | `GET /api/v1/scenarios/{id}` | Cenário completo: `scenario` (conteúdo de `scenario.json`), `buildingSlots` e `geometry` (GeoJSON). Envia `ETag`; com `If-None-Match` igual responde `304`. | `200` |
 | `GET /api/v1/scenarios/{id}/provinces/{provinceId}/neighbours` | Vizinhos de uma província. | `200` |
@@ -155,7 +158,8 @@ Erros seguem sempre o mesmo formato e nunca expõem stack traces:
 | 404 | `NOT_FOUND` | Rota, sala, comando ou chave inexistente. |
 | 405 | `METHOD_NOT_ALLOWED` | Método HTTP não suportado na rota. |
 | 422 | `NO_ROUTE` | Não existe rota terrestre entre as províncias pedidas. |
-| 409 | `NATION_TAKEN`, `MATCH_FULL`, `MATCH_NOT_OPEN`, `ALREADY_JOINED` | Regra da partida impede a entrada. |
+| 403 | `NOT_MATCH_CREATOR`, `NOT_PARTICIPANT` | Ação reservada a quem criou ou leitura reservada a participantes. |
+| 409 | `NATION_TAKEN`, `MATCH_FULL`, `MATCH_NOT_OPEN`, `ALREADY_JOINED`, `NOT_ENOUGH_PLAYERS` | Regra da partida impede a ação. |
 | 409 | `COMMAND_CONFLICT`, `CONFLICT` | `commandId` reutilizado com outra intenção ou conflito de gravação. |
 | 500 | `INTERNAL_ERROR` | Erro inesperado; o detalhe fica só no log do servidor. |
 
@@ -200,6 +204,31 @@ Uma partida é criada a partir de um cenário carregado e tem estado próprio
 - **Idempotência:** criar e entrar são comandos com `commandId`, gravados em
   `match_commands`. Um reenvio devolve `DUPLICATE` com o estado atual; usar o
   mesmo `commandId` com outra intenção ou por outro jogador gera `409`.
+- **Início e posição inicial:** quem criou a partida a inicia (`POST .../start`),
+  com ao menos `application.match.min-players-to-start` jogadores. Na mesma
+  transação, `InitialPosition` cria o estado territorial (`match_provinces`,
+  `match_units`, `match_province_stocks`, migration `V6`):
+  - cada nação com jogador recebe suas três províncias iniciais, com duas
+    infantarias básicas em cada uma (seis por jogador);
+  - o estoque inicial vai para cada província inicial, porque **o estoque é
+    local por província**; o total por nação é igual;
+  - as demais províncias, inclusive as de nações sem jogador, ficam neutras com
+    uma pequena guarnição e sem estoque;
+  - nenhuma construção ou estrada.
+
+  Os valores ficam em `application.match` e são **provisórios para teste**.
+- **Tempo real:** a conexão WebSocket entra no canal da partida com
+  `JOIN_MATCH` (só participantes) e recebe `MATCH_STATE` com `{ match, state }`.
+  Toda mudança confirmada no banco (entrada de jogador, início) publica
+  `MatchChanged`; depois do commit, `MatchStateBroadcaster` envia o estado
+  completo a todos os participantes conectados. A leitura roda em transação
+  nova. A lista de partidas do lobby se atualiza sozinha a cada 10 s.
+- **Histórico:** cada mudança de estado grava exatamente um evento em
+  `match_events` (migration `V7`), na mesma transação da mudança. Os eventos
+  são `MATCH_CREATED`, `PLAYER_JOINED` (com a nação) e `MATCH_STARTED`. A
+  ordem vem de `seq`, que é seguro porque a partida está bloqueada durante a
+  mudança. Reenvios e comandos recusados não geram evento, e os dados nunca
+  incluem tokens.
 - **Cenário em uso:** se o conteúdo de um cenário mudar e ele já tiver
   partidas, o Backend **não sobe** e pede um novo `id` de cenário, porque as
   partidas dependem das províncias e nações originais.
@@ -274,6 +303,7 @@ Cliente → servidor:
 |---|---|---|
 | `AUTHENTICATE` | `{ "token" }` | Identifica a conexão e recebe `AUTHENTICATED` com `{ "id", "name" }`. Precisa vir antes das mensagens abaixo. |
 | `JOIN_ROOM` | `{ "roomId" }` | Entra na sala (sai da anterior) e recebe `ROOM_STATE`. |
+| `JOIN_MATCH` | `{ "matchId" }` | Entra no canal da partida (só participantes) e recebe `MATCH_STATE`. |
 | `LEAVE_ROOM` | — | Sai da sala e recebe `LEFT_ROOM`. |
 | `COMMAND` | comando da seção anterior | Executa na sala atual e recebe `COMMAND_RESULT`. |
 | `PING` | — | Recebe `PONG`. |
@@ -291,12 +321,14 @@ Servidor → cliente:
 | `AUTHENTICATED` | Resposta a `AUTHENTICATE` com token válido. | `{ "id", "name" }` do jogador |
 | `ROOM_STATE` | Resposta a `JOIN_ROOM` e a **todos** da sala após cada mudança confirmada no banco. | estado da sala |
 | `COMMAND_RESULT` | Resposta a `COMMAND`, só para quem enviou. | mesmo corpo do resultado HTTP |
+| `MATCH_STATE` | Resposta a `JOIN_MATCH` e, a **todos** os participantes conectados, após cada mudança confirmada. `roomId` é o id da partida. | `{ "match", "state" }` |
 | `LEFT_ROOM` | Resposta a `LEAVE_ROOM`. | — |
 | `PONG` | Resposta a `PING`. | — |
 | `ERROR` | Mensagem rejeitada. | `{ "code", "message", "fields"? }` |
 
 Códigos de `ERROR`: `UNAUTHENTICATED` (sem `AUTHENTICATE` ou token inválido),
 `ALREADY_AUTHENTICATED` (tentativa de trocar o jogador da conexão),
+`NOT_PARTICIPANT` e `MATCH_NOT_FOUND` (em `JOIN_MATCH`),
 `INVALID_MESSAGE` (JSON inválido ou sem `type`),
 `UNKNOWN_TYPE`, `NOT_IN_ROOM`, `ROOM_NOT_FOUND`, `INVALID_COMMAND`,
 `COMMAND_CONFLICT`, `INTERNAL_ERROR`. Toda rejeição é registrada no log com o
@@ -306,7 +338,7 @@ id da sessão.
 cliente. Comandos enviados por HTTP também disparam `ROOM_STATE` para a sala.
 
 **Reconexão:** o cliente reconecta com espera crescente (1 s, 2 s, 4 s... até
-10 s), envia `AUTHENTICATE` e `JOIN_ROOM` de novo e substitui o que estiver na tela pelo
+10 s), envia `AUTHENTICATE` e de novo o `JOIN_ROOM` ou `JOIN_MATCH` que estava ativo e substitui o que estiver na tela pelo
 `ROOM_STATE` recebido. O servidor não guarda estado de jogo na sessão; ela
 serve apenas para saber quem recebe as atualizações.
 

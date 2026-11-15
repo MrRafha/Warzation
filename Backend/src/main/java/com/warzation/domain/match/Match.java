@@ -40,6 +40,9 @@ public class Match {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "started_at")
+    private OffsetDateTime startedAt;
+
     protected Match() {
     }
 
@@ -56,6 +59,19 @@ public class Match {
 
     public void touch() {
         this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void start() {
+        if (status != MatchStatus.OPEN) {
+            throw new IllegalStateException("Só uma partida aberta pode começar");
+        }
+        this.status = MatchStatus.STARTED;
+        this.startedAt = OffsetDateTime.now();
+        this.updatedAt = this.startedAt;
+    }
+
+    public OffsetDateTime getStartedAt() {
+        return startedAt;
     }
 
     /** Para testes e para o encerramento futuro das partidas. */

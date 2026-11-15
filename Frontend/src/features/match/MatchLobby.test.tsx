@@ -13,6 +13,7 @@ function match(overrides: Partial<MatchView> = {}): MatchView {
     maxPlayers: 2,
     createdBy: "jogador-1",
     createdAt: "2026-11-15T12:00:00Z",
+    startedAt: null,
     participants: [],
     nations: [
       { id: "parnaiba", name: "Nação do Parnaíba", capital: "pi-teresina", playerId: null },
@@ -62,7 +63,7 @@ describe("MatchLobby", () => {
       scenarioId: "nordeste-teste",
       name: "Minha partida",
     });
-    expect(get).toHaveBeenCalledWith("/api/v1/matches?status=OPEN");
+    expect(get).toHaveBeenCalledWith("/api/v1/matches");
   });
 
   it("entra numa partida escolhendo a nação", async () => {
@@ -90,6 +91,26 @@ describe("MatchLobby", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Entrar com Nação do Parnaíba" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("já foi escolhida");
+  });
+
+  it("mostra partidas em andamento só para quem participa e permite abrir", async () => {
+    const mine = match({
+      id: "m2",
+      name: "Em andamento minha",
+      status: "STARTED",
+      participants: [{ playerId: "jogador-1", playerName: "Jogador 1", nationId: "parnaiba", joinedAt: "" }],
+    });
+    const others = match({ id: "m3", name: "Em andamento alheia", status: "STARTED" });
+    const { api } = fakeApi([[mine, others]]);
+    const onOpen = vi.fn();
+
+    render(<MatchLobby api={api} playerId="jogador-1" onOpen={onOpen} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Abrir partida" }));
+    expect(onOpen).toHaveBeenCalledWith("m2");
+    expect(screen.getByText(/em andamento/)).toBeInTheDocument();
+    expect(screen.queryByText("Em andamento alheia")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Entrar com/ })).not.toBeInTheDocument();
   });
 
   it("sem jogador, só lista", async () => {

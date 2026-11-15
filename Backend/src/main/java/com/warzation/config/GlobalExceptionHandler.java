@@ -85,7 +85,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MatchRuleException.class)
     public ResponseEntity<ApiErrorResponse> handleMatchRule(MatchRuleException exception, HttpServletRequest request) {
-        return response(HttpStatus.CONFLICT, exception.getReason().name(), exception.getMessage(), request, Map.of());
+        HttpStatus status = exception.getReason().isForbidden() ? HttpStatus.FORBIDDEN : HttpStatus.CONFLICT;
+        return response(status, exception.getReason().name(), exception.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(NoRouteException.class)

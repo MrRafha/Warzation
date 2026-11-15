@@ -31,6 +31,7 @@ class MatchPersistenceAfterRestartTests {
             matchId = matches.create(ONE, UUID.randomUUID(), "nordeste-teste", "Persistente").match().id();
             matches.join(ONE, joinCommand, matchId, "parnaiba");
             matches.join(TWO, UUID.randomUUID(), matchId, "sao-francisco");
+            matches.start(ONE, UUID.randomUUID(), matchId);
         }
 
         try (ConfigurableApplicationContext secondRun = start(jdbcUrl)) {
@@ -38,13 +39,20 @@ class MatchPersistenceAfterRestartTests {
             MatchView recovered = matches.get(matchId);
 
             assertThat(recovered.name()).isEqualTo("Persistente");
-            assertThat(recovered.status()).isEqualTo("OPEN");
+            assertThat(recovered.status()).isEqualTo("STARTED");
+            MatchStateView state = matches.state(TWO, matchId);
+            assertThat(state.provinces()).hasSize(24);
+            assertThat(state.provinces()).filteredOn(p -> "sao-francisco".equals(p.ownerNationId())).hasSize(3);
             assertThat(recovered.participants()).extracting(MatchView.Participant::nationId)
                     .containsExactly("parnaiba", "sao-francisco");
+
+            assertThat(matches.events(ONE, matchId)).extracting(MatchEventView::type)
+                    .containsExactly("MATCH_CREATED", "PLAYER_JOINED", "PLAYER_JOINED", "MATCH_STARTED");
 
             MatchCommandResult resent = matches.join(ONE, joinCommand, matchId, "parnaiba");
             assertThat(resent.status()).isEqualTo(MatchCommandResult.Status.DUPLICATE);
             assertThat(matches.get(matchId).participants()).hasSize(2);
+            assertThat(matches.events(ONE, matchId)).hasSize(4);
         }
     }
 

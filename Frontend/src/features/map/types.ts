@@ -69,3 +69,15 @@ export type ScenarioResponse = {
   buildingSlots: Record<string, number>;
   geometry: GeometryCollection;
 };
+
+/** Dados de partida desenhados sobre o mapa. Sem overlay, o mapa mostra só o cenário. */
+export type ProvinceDetails = {
+  owner: { label: string; color: string } | null;
+  units: Array<{ label: string; quantity: number; neutral: boolean }>;
+  stock: Array<{ label: string; amount: number }>;
+};
+
+export type MapOverlay = {
+  details: Map<string, ProvinceDetails>;
+  legend: Array<{ label: string; color: string }>;
+};

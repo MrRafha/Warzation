@@ -118,8 +118,11 @@ Os detalhes e responsabilidades da stack estão em
 A fundação técnica da Sprint 1 está implementada: persistência no PostgreSQL
 com Flyway, API HTTP com erros padronizados e CORS restrito, WebSocket em
 `/ws` com salas, e comandos validados pelo servidor e idempotentes, que
-sobrevivem a reinicializações. A sala de teste `dev` aparece na tela inicial
-do Frontend.
+sobrevivem a reinicializações.
+
+A Sprint 2 entregou o mapa de teste do Nordeste (24 províncias) servido pela
+API, jogadores de teste identificados, partidas com escolha de nação, posição
+inicial, sincronização da partida em tempo real e histórico de eventos.
 
 ## Documentação
 
@@ -130,6 +133,5 @@ do Frontend.
 
 ## Próximo passo
 
-Concluir a Fase 0: mapa de teste do Nordeste (24 províncias), modelo inicial de
-província e nação, dados configuráveis e protótipo visual para seleção de
-províncias no Frontend React/Vite.
+Fase 2: economia, armazenamento e construções sobre o estado da partida
+(Docs/02_DIRECAO_DE_DESENVOLVIMENTO.md).

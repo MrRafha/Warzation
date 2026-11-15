@@ -181,11 +181,18 @@ O teste automatizado equivalente é `RoomWebSocketTests`.
    **Entrar** ao lado da Nação do Parnaíba.
 4. Na aba do Jogador 2, clique em **Atualizar** e entre com a Nação do São
    Francisco. Tentar a Nação do Parnaíba mostra que ela já foi escolhida.
-5. Reinicie o Backend e atualize a lista: a partida e os dois participantes
-   continuam lá.
+5. Nas duas abas, clique em **Abrir partida**. Os dois veem "ao vivo".
+6. Na aba do Jogador 1, que criou a partida, clique em **Iniciar partida**. As
+   duas abas passam a mostrar o mapa colorido pelos donos, sem recarregar:
+   Piauí e Bahia com 2 infantarias por província e o restante neutro.
+7. Clique numa província para ver dono, unidades e estoque, e confira o
+   **Histórico**.
+8. Reinicie o Backend: as abas mostram "reconectando..." e voltam sozinhas
+   com o mesmo estado.
 
-A lista ainda não atualiza sozinha; a sincronização em tempo real da partida
-é a #20. Os testes automatizados equivalentes são `MatchControllerTests` e
+A lista de partidas se atualiza sozinha a cada 10 s. Os testes automatizados
+equivalentes são `MatchControllerTests`, `MatchStartTests`,
+`MatchRealtimeTests` (dois clientes WebSocket), `MatchEventsTests` e
 `MatchPersistenceAfterRestartTests`.
 
 ### Persistência após reinicialização

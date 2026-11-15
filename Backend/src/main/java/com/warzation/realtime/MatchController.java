@@ -1,7 +1,9 @@
 package com.warzation.realtime;
 
 import com.warzation.application.match.MatchCommandResult;
+import com.warzation.application.match.MatchEventView;
 import com.warzation.application.match.MatchService;
+import com.warzation.application.match.MatchStateView;
 import com.warzation.application.match.MatchView;
 import com.warzation.application.player.Player;
 import com.warzation.domain.match.MatchStatus;
@@ -45,6 +47,10 @@ public class MatchController {
             @NotBlank String nationId) {
     }
 
+    public record CommandOnlyRequest(
+            @NotBlank @Pattern(regexp = UUID_PATTERN, message = "deve ser um UUID") String commandId) {
+    }
+
     @GetMapping
     public List<MatchView> list(@RequestParam(required = false) MatchStatus status) {
         return matchService.list(status);
@@ -69,6 +75,27 @@ public class MatchController {
             @PathVariable String matchId,
             @Valid @RequestBody JoinMatchRequest request) {
         return respond(matchService.join(player, UUID.fromString(request.commandId()), matchId, request.nationId()));
+    }
+
+    /** Inicia a partida e aplica a posição inicial (só quem criou). */
+    @PostMapping("/{matchId}/start")
+    public ResponseEntity<MatchCommandResult> start(
+            @CurrentPlayer Player player,
+            @PathVariable String matchId,
+            @Valid @RequestBody CommandOnlyRequest request) {
+        return respond(matchService.start(player, UUID.fromString(request.commandId()), matchId));
+    }
+
+    /** Estado territorial oficial (só participantes). */
+    @GetMapping("/{matchId}/state")
+    public MatchStateView state(@CurrentPlayer Player player, @PathVariable String matchId) {
+        return matchService.state(player, matchId);
+    }
+
+    /** Histórico da partida, em ordem (participantes e quem criou). */
+    @GetMapping("/{matchId}/events")
+    public List<MatchEventView> events(@CurrentPlayer Player player, @PathVariable String matchId) {
+        return matchService.events(player, matchId);
     }
 
     private static ResponseEntity<MatchCommandResult> respond(MatchCommandResult result) {
