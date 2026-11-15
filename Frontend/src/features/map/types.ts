@@ -59,4 +59,13 @@ export type Scenario = {
   stateNames: Map<string, string>;
   terrainNames: Map<string, string>;
   capitals: Set<string>;
+  /** Espaços de construção por província, definidos pelo servidor. */
+  buildingSlots: Map<string, number>;
+};
+
+/** Resposta de GET /api/v1/scenarios/{id}. */
+export type ScenarioResponse = {
+  scenario: ScenarioData;
+  buildingSlots: Record<string, number>;
+  geometry: GeometryCollection;
 };

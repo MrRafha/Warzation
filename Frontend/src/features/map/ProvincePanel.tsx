@@ -1,9 +1,6 @@
 import { abundanceLabel, resourceLabel } from "./labels";
 import type { Scenario } from "./types";
 
-const SPACES_PER_PROVINCE = 3;
-const SPACES_PER_CAPITAL = 4;
-
 type Props = {
   scenario: Scenario;
   provinceId: string | null;
@@ -26,7 +23,7 @@ export function ProvincePanel({ scenario, provinceId, onSelect }: Props) {
   }
 
   const isCapital = scenario.capitals.has(province.id);
-  const spaces = isCapital ? SPACES_PER_CAPITAL : SPACES_PER_PROVINCE;
+  const spaces = scenario.buildingSlots.get(province.id);
   const neighbours = scenario.neighbours.get(province.id) ?? [];
 
   return (
@@ -60,7 +57,7 @@ export function ProvincePanel({ scenario, provinceId, onSelect }: Props) {
         </dd>
 
         <dt>Espaços de construção</dt>
-        <dd>0 de {spaces} ocupados</dd>
+        <dd>{spaces === undefined ? "—" : `0 de ${spaces} ocupados`}</dd>
 
         <dt>Construções</dt>
         <dd>Nenhuma</dd>

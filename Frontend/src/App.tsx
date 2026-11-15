@@ -1,9 +1,9 @@
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import { ConnectionStatus } from "./features/connection/ConnectionStatus";
 import { useBackendHealth } from "./features/connection/useBackendHealth";
 import { DevRoomPanel } from "./features/devRoom/DevRoomPanel";
 import { MapScreen } from "./features/map/MapScreen";
-import { loadBundledScenario } from "./features/map/scenario";
+import { loadScenarioFromApi } from "./features/map/scenario";
 import { createApiClient } from "./lib/apiClient";
 import { readConfig, type AppConfig } from "./lib/config";
 import { RealtimeClient } from "./lib/realtimeClient";
@@ -30,17 +30,28 @@ export function App() {
 function ConnectedApp({ config }: { config: AppConfig }) {
   const api = useMemo(() => createApiClient(config.apiBaseUrl), [config.apiBaseUrl]);
   const realtime = useMemo(() => new RealtimeClient(config.wsUrl), [config.wsUrl]);
+  const loadScenario = useCallback(() => loadScenarioFromApi(api), [api]);
   const { health, retry } = useBackendHealth(api);
+  const online = health.status === "online";
 
   return (
     <Layout
       status={<ConnectionStatus health={health} onRetry={retry} />}
-      devTools={health.status === "online" ? <DevRoomPanel client={realtime} /> : null}
+      main={
+        online ? (
+          <MapScreen loadScenario={loadScenario} />
+        ) : (
+          health.status === "offline" && (
+            <p className="muted map-placeholder">O mapa aparece quando o Backend estiver conectado.</p>
+          )
+        )
+      }
+      devTools={online ? <DevRoomPanel client={realtime} /> : null}
     />
   );
 }
 
-function Layout({ status, devTools }: { status: ReactNode; devTools?: ReactNode }) {
+function Layout({ status, main, devTools }: { status: ReactNode; main?: ReactNode; devTools?: ReactNode }) {
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -51,7 +62,7 @@ function Layout({ status, devTools }: { status: ReactNode; devTools?: ReactNode 
         {status}
       </header>
 
-      <MapScreen loadScenario={loadBundledScenario} />
+      {main}
 
       {devTools && (
         <details className="dev-tools">

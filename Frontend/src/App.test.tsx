@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { FakeSocket } from "./test/fakeSocket";
+import { scenarioResponseFixture } from "./test/scenarioFixture";
 
 const health = { status: "UP", service: "warzation-backend", version: "0.0.1-SNAPSHOT" };
 
@@ -17,14 +18,22 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mockFetch(implementation: () => Promise<Response>) {
+function mockFetch(implementation: (url: string) => Promise<Response>) {
   const fetchMock = vi.fn(implementation);
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
 
+/** Backend no ar: responde o health e o cenário do mapa. */
+async function onlineBackend(url: string): Promise<Response> {
+  if (url.endsWith("/api/v1/scenarios/nordeste-teste")) {
+    return Response.json(scenarioResponseFixture());
+  }
+  return Response.json(health);
+}
+
 it("consulta o endpoint de saúde configurado e mostra o Backend conectado", async () => {
-  const fetchMock = mockFetch(async () => Response.json(health));
+  const fetchMock = mockFetch(onlineBackend);
 
   render(<App />);
 
@@ -44,16 +53,41 @@ it("mostra o Backend offline sem quebrar quando a API não responde", async () =
   expect(await screen.findByText("Backend offline")).toBeVisible();
   expect(screen.getByText(/Não foi possível alcançar o Backend/)).toBeVisible();
   expect(screen.queryByText("Sala de teste")).not.toBeInTheDocument();
+  expect(screen.getByText("O mapa aparece quando o Backend estiver conectado.")).toBeVisible();
+});
+
+it("carrega o mapa pela API quando o Backend está conectado", async () => {
+  const fetchMock = mockFetch(onlineBackend);
+
+  render(<App />);
+
+  const map = await screen.findByRole("group", { name: /Mapa/ });
+  expect(map.querySelectorAll("path.province")).toHaveLength(24);
+  expect(fetchMock).toHaveBeenCalledWith("http://api.test/api/v1/scenarios/nordeste-teste", expect.anything());
+
+  fireEvent.click(map.querySelector('[data-province-id="ba-salvador"]')!);
+  expect(screen.getByText("0 de 4 ocupados")).toBeInTheDocument();
+});
+
+it("mostra erro se o mapa não vier da API", async () => {
+  mockFetch(async (url) =>
+    url.endsWith("/api/v1/health")
+      ? Response.json(health)
+      : Response.json({ code: "NOT_FOUND", message: "Cenário não encontrado" }, { status: 404 }),
+  );
+
+  render(<App />);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Cenário não encontrado");
 });
 
 it("permite tentar de novo depois de uma falha", async () => {
-  let calls = 0;
-  mockFetch(async () => {
-    calls += 1;
-    if (calls === 1) {
+  let healthCalls = 0;
+  mockFetch(async (url) => {
+    if (url.endsWith("/api/v1/health") && ++healthCalls === 1) {
       return Response.json({ code: "INTERNAL_ERROR", message: "Erro interno" }, { status: 500 });
     }
-    return Response.json(health);
+    return onlineBackend(url);
   });
 
   render(<App />);
@@ -65,7 +99,7 @@ it("permite tentar de novo depois de uma falha", async () => {
 
 it("avisa quando as variáveis de ambiente não foram configuradas", () => {
   vi.stubEnv("VITE_API_BASE_URL", "");
-  const fetchMock = mockFetch(async () => Response.json(health));
+  const fetchMock = mockFetch(onlineBackend);
 
   render(<App />);
 
@@ -74,7 +108,7 @@ it("avisa quando as variáveis de ambiente não foram configuradas", () => {
 });
 
 it("mostra o estado oficial da sala de teste e envia comandos pelo WebSocket", async () => {
-  mockFetch(async () => Response.json(health));
+  mockFetch(onlineBackend);
   render(<App />);
   await screen.findByText("Sala de teste");
 
