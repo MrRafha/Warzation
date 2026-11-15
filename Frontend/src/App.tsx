@@ -1,35 +1,14 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { ConnectionStatus } from "./features/connection/ConnectionStatus";
+import { useBackendHealth } from "./features/connection/useBackendHealth";
+import { DevRoomPanel } from "./features/devRoom/DevRoomPanel";
+import { createApiClient } from "./lib/apiClient";
+import { readConfig, type AppConfig } from "./lib/config";
+import { RealtimeClient } from "./lib/realtimeClient";
 import "./styles/app.css";
 
-type ConnectionStatus = "checking" | "offline" | "online";
-
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
-
 export function App() {
-  const [connectionStatus, setConnectionStatus] =
-    useState<ConnectionStatus>("checking");
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch(`${apiBaseUrl}/actuator/health`, {
-      signal: controller.signal,
-    })
-      .then((response) => {
-        setConnectionStatus(response.ok ? "online" : "offline");
-      })
-      .catch(() => {
-        setConnectionStatus("offline");
-      });
-
-    return () => controller.abort();
-  }, []);
-
-  const statusLabel = {
-    checking: "Verificando conexão...",
-    offline: "Backend offline",
-    online: "Backend conectado",
-  }[connectionStatus];
+  const configResult = useMemo(() => readConfig(), []);
 
   return (
     <main className="app-shell">
@@ -40,11 +19,28 @@ export function App() {
           Construa uma civilização, governe suas províncias e conquiste seu
           espaço em um mundo persistente.
         </p>
-        <div className={`connection-status ${connectionStatus}`} role="status">
-          <span aria-hidden="true" />
-          {statusLabel}
-        </div>
+        {configResult.ok ? (
+          <ConnectedContent config={configResult.config} />
+        ) : (
+          <p className="config-error" role="alert">
+            Configuração ausente: defina {configResult.missing.join(" e ")} em{" "}
+            <code>Frontend/.env</code> (veja <code>.env.example</code>).
+          </p>
+        )}
       </section>
     </main>
+  );
+}
+
+function ConnectedContent({ config }: { config: AppConfig }) {
+  const api = useMemo(() => createApiClient(config.apiBaseUrl), [config.apiBaseUrl]);
+  const realtime = useMemo(() => new RealtimeClient(config.wsUrl), [config.wsUrl]);
+  const { health, retry } = useBackendHealth(api);
+
+  return (
+    <>
+      <ConnectionStatus health={health} onRetry={retry} />
+      {health.status === "online" && <DevRoomPanel client={realtime} />}
+    </>
   );
 }

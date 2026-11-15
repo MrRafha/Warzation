@@ -1,9 +1,9 @@
-# DIREÇÃO DE DESENVOLVIMENTO — GRAND STRATEGY RTS DE NAVEGADOR
+# WARZATION — DIREÇÃO DE DESENVOLVIMENTO
 
-**Versão:** 2.0  
-**Última atualização:** 7 de novembro de 2026  
+**Versão:** 2.1  
+**Última atualização:** 15 de novembro de 2026  
 **Status:** Direção de execução consolidada.  
-**Documento de referência:** `01_CONTEXTO_DO_PROJETO.md`
+**Documentos de referência:** `01_CONTEXTO_DO_PROJETO.md` (regras) e `03_ARQUITETURA_E_STACK.md` (arquitetura)
 
 Este documento transforma a visão do jogo em um plano de execução. Ele define os marcos de entrega, o escopo do protótipo técnico, o escopo da primeira versão completa jogável, os critérios de aceitação e as prioridades para a equipe.
 
@@ -133,250 +133,15 @@ O protótipo poderá usar dados de mapa reduzidos ou simplificados para validar 
 
 ---
 
-## 4. Regras operacionais que orientam a implementação
+## 4. Regras do jogo
 
-### 4.1 Mapa e fronteiras
-
-Cada província deve ter identificador estável, geometria, cidade principal, terreno, depósitos naturais, adjacências e acesso costeiro quando aplicável.
-
-**A prioridade é a fidelidade das fronteiras reais ou reconhecíveis.** A distribuição e produtividade de recursos podem ser ajustadas para balanceamento; não se deve criar fronteiras fictícias apenas para dar recursos equivalentes a cada nação.
-
-O cenário completo terá 50–60 províncias nas Américas. Cada província corresponde a uma região geográfica/cidade-estado com cidade principal.
-
-### 4.2 Nações e posição inicial
-
-- Nação jogável predefinida.
-- Uma capital e duas províncias próximas.
-- Três províncias iniciais no total.
-- Duas unidades de infantaria básica em cada província inicial.
-- Seis unidades por jogador.
-- Estoques iniciais e potencial econômico equilibrados.
-- Territórios neutros com pequenas guarnições, sem construções e sem estradas.
-
-A lista final de nações e a atribuição de províncias iniciais devem ser aprovadas no conteúdo do mapa. A seleção de nações deve evitar que fronteiras, recursos ou posição produzam vantagem inicial excessiva.
-
-### 4.3 Terrenos e construções
-
-Nenhum terreno ou cidade começa com construções prontas. Terreno e depósito definem elegibilidade e modificadores, não infraestrutura instalada.
-
-| Tipo de província | Espaços |
-|---|---:|
-| Comum | 3 |
-| Capital | 4 |
-
-Todas as províncias começam vazias. Não implementar níveis ou melhorias individuais de edifícios. Estradas são infraestrutura de conexão e não ocupam espaços.
-
-Construções aprovadas:
-
-1. Fazenda — comida;
-2. Celeiro — capacidade de armazenamento de comida;
-3. Mina — extração de pedra ou metal em depósito compatível;
-4. Porto — infraestrutura costeira e conexão marítima;
-5. Curral — comida e suporte à cavalaria;
-6. Acampamento — recrutamento de unidades terrestres;
-7. Biblioteca — velocidade de pesquisa;
-8. Banco — economia monetária da Era Industrial.
-
-Aeroporto não está aprovado na lista atual. A equipe deve registrar a dependência de infraestrutura aérea ao detalhar as unidades modernas, sem adicionar a construção silenciosamente. Da mesma forma, o Porto está na lista aprovada, mas seu efeito exato no MVP precisa ser especificado antes de implementar conexões marítimas.
-
-### 4.4 Economia
-
-Recursos por fase:
-
-- Era Antiga: comida e pedra;
-- Era Medieval: comida, pedra e metal;
-- Era Industrial: dinheiro e petróleo passam a fazer parte da economia, mantendo os recursos anteriores;
-- Era Moderna: todos os recursos anteriores permanecem utilizáveis.
-
-Depósitos podem estar cadastrados no mapa desde o início, mas metal só entra na economia utilizável após o avanço tecnológico medieval. Dinheiro e petróleo são recursos de late game.
-
-Regras:
-
-- estoques ficam associados a províncias;
-- Celeiro amplia a capacidade local de comida;
-- cada província tem demanda alimentar fixa;
-- tropas consomem comida periodicamente;
-- não há simulação de população individual;
-- não há deterioração automática;
-- produção é calculada por ciclos, inicialmente horários;
-- transferências automáticas da lente logística movimentam comida, não pedra ou metal.
-
-### 4.5 Mercado global
-
-A interface de mercado deve permitir publicar pedidos de compra e venda e negociar com os demais jogadores.
-
-- Antes de desbloquear dinheiro, as operações utilizam escambo entre recursos.
-- A taxa do mercado é de 15% enquanto a moeda não estiver disponível.
-- A taxa é liquidada em bens no escambo, não exige uma moeda inexistente.
-- A regra exata de contabilização deve estar centralizada e configurável no servidor; na configuração inicial de teste, a taxa é deduzida da quantidade de mercadoria oferecida.
-- Depois do desbloqueio da moeda, a cobrança monetária e as demais regras avançadas serão definidas junto com a economia Industrial.
-- A troca do MVP é resolvida pelo mercado; não há navio ou comboio transportando fisicamente o bem.
-
-Acordo/aliança comercial faz parte da diplomacia simplificada. Rotas de comércio físico por estrada ou embarcação e saque de comboios ficam para versões futuras.
-
-### 4.6 Tecnologia e eras
-
-- Progressão individual por jogador.
-- Árvore dividida em quatro eras na versão completa.
-- Tecnologias possuem pré-requisitos e desbloqueiam construções, unidades ou bônus.
-- Uma pesquisa ativa por jogador.
-- Biblioteca aumenta a velocidade geral da pesquisa.
-- A primeira construção concluída de uma categoria concede um marco único de 50% de bônus no progresso/tempo de uma pesquisa relacionada.
-- O marco não pode ser repetido construindo novamente a mesma categoria.
-- Tecnologias podem conceder bônus globais, substituindo melhorias individuais de edifícios.
-- Metalurgia é Medieval; tropas antigas não exigem metal.
-
-### 4.7 Unidades, recrutamento e movimento
-
-Categorias:
-
-- corpo a corpo;
-- ranged;
-- cavalaria;
-- cerco.
-
-Cada tropa é uma unidade militar completa. Recrutamento ocorre em Acampamentos; cada unidade possui custo e tempo. Unidades antigas não exigem metal; unidades medievais mais avançadas podem exigir.
-
-Os exércitos são grupos. O servidor calcula rota e tempo. A velocidade do grupo parte da unidade mais lenta e recebe modificadores de terreno, estrada e tecnologia. O movimento continua offline.
-
-**Limite de temporizador:** construções e treinamento de tropas devem levar no máximo 24 horas por ordem. Esse teto não deve ser aplicado automaticamente a pesquisa ou deslocamento.
-
-### 4.8 Combate
-
-Combate automático, resolvido no servidor em rodadas. Reforços podem entrar em uma batalha em andamento conforme regras de chegada.
-
-Fatores:
-
-- composição e quantidade;
-- ataque e defesa;
-- vantagens entre categorias;
-- terreno;
-- fortificações;
-- tecnologia;
-- abastecimento.
-
-O cliente exibe resultados e relatórios; não calcula o vencedor.
-
-### 4.9 Estradas e abastecimento
-
-Estradas são construídas nas conexões entre províncias. Tropas atravessam conexões naturais sem estrada, mas estradas aumentam velocidade e capacidade/velocidade do abastecimento. Elas podem ser danificadas ou destruídas e precisam de reparo/reconstrução.
-
-No MVP, apenas comida é transferida automaticamente pela rede logística.
-
-O sistema deve:
-
-1. identificar excedentes e déficits de comida;
-2. calcular rotas válidas entre fontes e destinos;
-3. considerar capacidade e velocidade das estradas;
-4. permitir prioridades configuráveis;
-5. permitir mais de uma fonte abastecedora para um destino;
-6. recalcular e usar alternativas quando uma rota for interrompida;
-7. considerar províncias próprias e, quando houver tratado apropriado, trânsito autorizado por províncias aliadas.
-
-A lente de abastecimento mostra setas de fluxo, fontes, destinos, excedentes, déficits, prioridades e rotas comprometidas. O jogador configura prioridades; o servidor calcula os caminhos.
-
-A demanda de comida da população é uma quantidade fixa por província. Tropas têm consumo periódico separado. Reservas locais e Celeiros influenciam a resistência durante cercos.
-
-### 4.10 Pilhagem, sabotagem e cerco
-
-Pilhagem pode roubar estoques e danificar ou destruir estradas/conexões logísticas. Ações específicas poderão danificar construções ou reduzir temporariamente produtividade. Limites, custos e tempos são parâmetros configuráveis.
-
-Uma província/cidade pode entrar em cerco quando sua rede de abastecimento é efetivamente interrompida. A existência de uma rota alternativa impede que a destruição de uma única estrada seja suficiente para isolar a cidade.
-
-Reservas locais são consumidas. A falta de comida reduz gradualmente a resistência da guarnição e da população. A rendição exige condições e tempo; não é instantânea. O defensor pode enviar reforços, romper o cerco, reabrir rotas ou negociar.
-
-### 4.11 Diplomacia e vitória
-
-Tratados do MVP:
-
-- paz;
-- pacto de não agressão;
-- aliança;
-- acesso militar;
-- acordo/aliança comercial.
-
-**Dominação:** controlar 60% de todas as províncias do mapa, incluindo neutras. O cálculo é por quantidade de províncias; frações são arredondadas para cima.
-
-**Vitória diplomática:** todos os jogadores não eliminados precisam integrar e aceitar formalmente a mesma coalizão; ela deve permanecer estável por um período configurável. Os membros elegíveis vencem juntos. Jogador offline, mas ainda não eliminado, continua sendo participante para essa regra.
-
-**Eliminação:** ocorre quando o jogador perde todas as províncias. Perder a capital não elimina. Eliminados podem assistir à partida.
-
-### 4.12 Tempo e persistência
-
-- alvo de duração: 7–14 dias;
-- atualizações/eventos internos em intervalos de até um minuto, conforme sistema;
-- produção econômica inicialmente horária;
-- construções e recrutamento com timers reais de até 24 horas;
-- servidor processa o estado mesmo sem clientes conectados;
-- armazenar timestamps e último processamento;
-- usar idempotência para impedir execução duplicada;
-- reinício do servidor não pode apagar nem duplicar o estado.
+As regras de mapa, nações, construções, economia, mercado, tecnologia, militar, combate, logística, cercos, diplomacia, vitória e tempo estão em `01_CONTEXTO_DO_PROJETO.md`. Este documento não as repete; os critérios de aceitação da seção 7 verificam essas regras.
 
 ---
 
-## 5. Arquitetura lógica recomendada
+## 5. Arquitetura
 
-A tecnologia específica será escolhida em uma etapa própria. Independentemente da stack, separar responsabilidades ajuda a manter o projeto testável.
-
-### 5.1 Módulos de domínio sugeridos
-
-| Módulo | Responsabilidade |
-|---|---|
-| **World/Map** | Províncias, geometrias, cidades, terrenos, depósitos, fronteiras e adjacências. |
-| **Players/Nations** | Jogadores, nações, capitais, propriedade inicial e eliminação. |
-| **Economy** | Recursos, produção, estoques, consumo, custos e mercado. |
-| **Buildings** | Requisitos, espaços, construção, conclusão e efeitos. |
-| **Research** | Árvore tecnológica, pré-requisitos, fila única, eras, Biblioteca e marcos. |
-| **Military** | Unidades, exércitos, recrutamento, movimento e combate. |
-| **Logistics** | Estradas, capacidade, rotas alimentares, prioridades, reservas e abastecimento. |
-| **Siege/Pillage** | Isolamento, saque, dano de infraestrutura, desgaste e rendição. |
-| **Diplomacy** | Tratados, propostas, aceite, expiração, alianças e acesso. |
-| **Match/Lifecycle** | Relógio, persistência, eventos agendados, vitória e eliminação. |
-| **Realtime Gateway** | Sincronização de estado e notificações para os clientes. |
-
-Os módulos são uma divisão conceitual. A equipe pode adaptá-los à arquitetura selecionada, mantendo as responsabilidades separadas.
-
-### 5.2 Modelo orientado a dados
-
-Manter definições separadas do código de execução. Entidades/configurações sugeridas:
-
-- `nations`: nomes, capital, províncias iniciais e configuração de equilíbrio;
-- `provinces`: geometria, cidade principal, fronteiras, terreno, depósitos, costa e espaços;
-- `resources`: tipos, era de disponibilidade e regras de estoque;
-- `buildings`: custo, tempo, tecnologia, terreno, efeito e espaço consumido;
-- `technologies`: era, pré-requisitos, desbloqueios, bônus e marco associado;
-- `units`: categoria, era, atributos, custo, treinamento e consumo;
-- `roads`: par de províncias conectadas, condição, capacidade, velocidade e estado;
-- `supply_rules`: demanda fixa, prioridades, capacidade e política de rota;
-- `market_rules`: tipos de oferta, taxa e forma de liquidação;
-- `diplomacy_rules`: tratados, requisitos, permissões e duração;
-- `victory_rules`: 60% territorial e estabilidade diplomática;
-- `match_rules`: relógio, ciclo de produção e timers.
-
-Os nomes são sugestões de organização, não exigência de banco ou formato.
-
-### 5.3 Tempo, eventos e idempotência
-
-Evitar depender de um processo contínuo por jogador conectado.
-
-- Persistir timestamps de início e conclusão de ações.
-- Persistir o último instante de produção/consumo aplicado.
-- Ao processar uma entidade, calcular o tempo transcorrido e aplicar somente os efeitos ainda não processados.
-- Usar tarefas agendadas para ações que precisam ser resolvidas no horário.
-- Registrar eventos críticos de forma transacional sempre que possível.
-- Garantir idempotência: executar novamente um evento não pode duplicar produção, cobrança, movimento, combate ou recompensa.
-
-### 5.4 Segurança e autoridade
-
-- Cliente nunca define saldo, propriedade, conclusão ou vencedor.
-- Validar toda ordem no servidor: propriedade, recursos, tecnologia, espaço, conexão, tratado e estado da partida.
-- Proteger operações simultâneas de estoque para impedir gastos duplicados.
-- Registrar histórico de operações econômicas, militares e diplomáticas.
-- Não confiar em timers ou relógios enviados pelo navegador.
-
-### 5.5 Comunicação
-
-A interface deve receber atualizações do servidor sem recarregar a página. Uma solução de comunicação bidirecional ou baseada em eventos em tempo real será escolhida na etapa de arquitetura técnica.
+Módulos de domínio, modelo orientado a dados, tempo/idempotência, segurança e comunicação estão em `03_ARQUITETURA_E_STACK.md`.
 
 ---
 
@@ -666,44 +431,23 @@ Os parâmetros que já foram aprovados como regra — por exemplo, 60% de domina
 
 ---
 
-## 11. Entregáveis de documentação e trabalho em equipe
+## 11. Documentação
 
-Manter no repositório, no mínimo:
+Manter no repositório:
 
-- `01_CONTEXTO_DO_PROJETO.md` — visão, mecânicas e regras de referência;
-- `02_DIRECAO_DE_DESENVOLVIMENTO.md` — escopo, fases, critérios de aceitação e testes;
-- `README.md` — como configurar, executar e testar o projeto;
-- `docs/MAPA_E_DADOS.md` — cartografia, províncias, nações, depósitos e adjacências;
-- `docs/ECONOMIA_E_CONSTRUCOES.md` — recursos, produção, armazenamento, espaços e edifícios;
-- `docs/TECNOLOGIAS_E_ERAS.md` — árvore tecnológica, desbloqueios e marcos;
-- `docs/MILITAR_E_COMBATE.md` — unidades, recrutamento, movimento e combate;
-- `docs/LOGISTICA_E_CERCOS.md` — estradas, lente, abastecimento, pilhagem e rendição;
-- `docs/DIPLOMACIA_MERCADO_E_VITORIA.md` — tratados, mercado, taxas e condições de vitória.
+- `README.md` — visão rápida, estrutura e links;
+- `Docs/01_CONTEXTO_DO_PROJETO.md` — regras do jogo, decisões confirmadas e lista única de pendências;
+- `Docs/02_DIRECAO_DE_DESENVOLVIMENTO.md` — escopo, fases, critérios de aceitação, testes e riscos;
+- `Docs/03_ARQUITETURA_E_STACK.md` — stack, módulos, modelo de dados, persistência e segurança;
+- `Docs/04_GUIA_DESENVOLVIMENTO_LOCAL.md` — instalação, execução, testes e contrato inicial da API.
 
-Toda mudança que altere regra confirmada deve atualizar primeiro o contexto e, em seguida, o documento específico do sistema.
+Toda mudança que altere regra confirmada deve atualizar primeiro o `01_CONTEXTO_DO_PROJETO.md` e depois os critérios e testes afetados neste documento.
 
 ---
 
-## 12. Decisões pendentes para detalhamento
+## 12. Decisões pendentes
 
-As regras estruturais estão consolidadas. As pendências abaixo são produção de conteúdo, parâmetros ou decisões de implementação, não motivos para reabrir os pilares já aprovados:
-
-1. nome e identidade visual;
-2. lista definitiva das nações jogáveis, capitais e províncias iniciais;
-3. cartografia final das 50–60 províncias, geometrias e fronteiras;
-4. documentação das fontes geográficas usadas;
-5. depósitos e produtividade de recursos por província;
-6. custos e duração de construções, pesquisas e unidades;
-7. árvore tecnológica detalhada e lista de conteúdo por era;
-8. atributos de unidades, fórmulas de combate e duração das rodadas;
-9. parâmetros de estradas, transferência alimentar, prioridades e capacidade;
-10. origem e destino provincial das mercadorias negociadas no mercado global;
-11. função específica do Porto no MVP;
-12. contabilização exata da taxa do mercado depois do desbloqueio da moeda;
-13. período necessário para vitória diplomática;
-14. condições numéricas de cerco, desgaste e rendição;
-15. infraestrutura necessária às unidades aéreas da Era Moderna;
-16. hospedagem e detalhes de bibliotecas complementares da stack aprovada.
+A lista única de pendências está em `01_CONTEXTO_DO_PROJETO.md`, seção 14.2. Elas são produção de conteúdo, parâmetros ou decisões de implementação, não motivos para reabrir os pilares aprovados.
 
 Sempre que a implementação exigir um desses valores, usar parâmetro configurável e identificá-lo como **provisório para teste**. Não alterar uma decisão aprovada por conveniência técnica sem registrar a proposta e obter validação de design.
 

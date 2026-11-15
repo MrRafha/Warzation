@@ -1,11 +1,11 @@
-# CONTEXTO DO PROJETO — GRAND STRATEGY RTS DE NAVEGADOR
+# WARZATION — CONTEXTO DO PROJETO
 
-**Versão:** 2.0  
-**Última atualização:** 7 de novembro de 2026  
+**Versão:** 2.1  
+**Última atualização:** 15 de novembro de 2026  
 **Status:** Regras fundamentais consolidadas; parâmetros de balanceamento e conteúdo detalhado ainda serão definidos.  
-**Finalidade:** Ser a referência comum para todos os membros da equipe — pessoas e ferramentas de desenvolvimento — sobre a visão, as regras e o escopo do jogo.
+**Finalidade:** Fonte única das regras do jogo para todos os membros da equipe — pessoas e ferramentas de desenvolvimento. Escopo e fases ficam em `02_DIRECAO_DE_DESENVOLVIMENTO.md`; arquitetura e stack em `03_ARQUITETURA_E_STACK.md`.
 
-> O projeto ainda não possui nome oficial. “Grand Strategy RTS” é uma identificação provisória, não o título definitivo.
+> Este documento substitui os antigos documentos por sistema (Mapa, Economia, Tecnologias, Militar, Logística e Diplomacia), que apenas repetiam estas regras. Quando um sistema ganhar parâmetros numéricos extensos, ele pode voltar a ter um documento próprio.
 
 ---
 
@@ -511,71 +511,20 @@ Os horários de início e conclusão devem ser persistidos. O navegador não é 
 
 ## 11. Diretrizes técnicas de alto nível
 
-Estas são decisões arquiteturais já aprovadas, não uma escolha de linguagem ou framework.
+Decisões arquiteturais aprovadas:
 
-### 11.1 Servidor autoritativo
+- **Servidor autoritativo:** o navegador envia ordens e apresenta o estado; o servidor valida e decide todos os resultados.
+- **Mundo persistente:** timestamps persistidos, eventos agendados no servidor, idempotência e sobrevivência a reinícios.
+- **Dados separados da interface:** províncias, geometrias, regras, custos e atributos são dados estruturados; o desenho do mapa não contém lógica.
+- **Tempo real:** o cliente recebe atualizações via WebSocket, sem recarregar a página.
 
-O navegador envia ordens e apresenta o estado do mundo. O servidor valida permissões, custos, pré-requisitos, tempo, movimento, combate, abastecimento e resultados. O cliente nunca deve decidir o resultado oficial de uma ação.
-
-### 11.2 Mundo persistente e processamento por tempo
-
-Recursos, pesquisas, construções, exércitos, diplomacia e estado territorial continuam existindo mesmo se todos os jogadores estiverem desconectados.
-
-O sistema deve:
-
-- persistir timestamps de início, conclusão e última atualização;
-- calcular o tempo transcorrido ao processar entidades;
-- executar eventos agendados no servidor;
-- impedir duplicação de produção, custos, movimentos, batalhas ou recompensas (idempotência);
-- sobreviver a reinícios do servidor sem perder o estado da partida.
-
-### 11.3 Dados separados da interface
-
-Províncias, geometrias, fronteiras, terrenos, depósitos, construções, tecnologias, unidades, rotas e regras devem ser dados estruturados. O desenho do mapa não deve conter a lógica das regras.
-
-### 11.4 Comunicação em tempo real
-
-O cliente deve receber atualizações do servidor sem precisar recarregar a página. A tecnologia de comunicação será escolhida na etapa de arquitetura técnica.
+Stack, módulos de domínio, modelo de dados e regras de segurança estão em `03_ARQUITETURA_E_STACK.md`.
 
 ---
 
-## 12. Escopo de produto: protótipo técnico e MVP jogável
+## 12. Escopo de produto
 
-O projeto terá dois marcos distintos, para que “MVP” não seja confundido com o primeiro teste de tecnologia.
-
-### 12.1 Protótipo técnico inicial
-
-Objetivo: provar que os sistemas essenciais funcionam juntos antes de produzir todo o mapa e conteúdo.
-
-- mapa reduzido de aproximadamente 8–12 províncias;
-- dois jogadores de teste;
-- recorte funcional das Eras Antiga e Medieval;
-- economia inicial de comida, pedra e metal conforme desbloqueios;
-- construções e tecnologias representativas;
-- recrutamento de infantaria básica;
-- movimentação em tempo real;
-- combate e abastecimento simplificados;
-- persistência offline e sincronização entre clientes.
-
-O protótipo não é a versão completa destinada a jogadores. É uma validação técnica e de regras.
-
-### 12.2 Primeira versão completa jogável (MVP jogável)
-
-- cenário das Américas;
-- aproximadamente 50–60 províncias;
-- fronteiras realistas e conexões geográficas fixas;
-- 3–6 jogadores;
-- nações predefinidas com três províncias iniciais;
-- duas unidades de infantaria básica por província inicial;
-- todas as construções aprovadas, respeitando a era de desbloqueio;
-- economia, mercado global e taxa de escambo;
-- lente de abastecimento alimentar;
-- estradas, pilhagem, cercos e rendição;
-- diplomacia e as duas condições de vitória;
-- **quatro eras jogáveis: Antiga, Medieval, Industrial e Moderna**;
-- conteúdo tecnológico e militar de cada era reduzido e balanceado para partidas de 7–14 dias.
-
-As quatro eras fazem parte da primeira versão completa jogável. O protótipo técnico valida inicialmente apenas o recorte Antigo/Medieval.
+O projeto tem dois marcos: o **protótipo técnico** (8–12 províncias, dois jogadores, recorte Antigo/Medieval) e o **MVP jogável** (Américas, 50–60 províncias, 3–6 jogadores, quatro eras). Escopo detalhado, itens fora do MVP e critérios de saída estão em `02_DIRECAO_DE_DESENVOLVIMENTO.md`, seções 2 e 3.
 
 ---
 
@@ -633,13 +582,16 @@ As quatro eras fazem parte da primeira versão completa jogável. O protótipo t
 - Eliminação ao perder todas as províncias; capital perdida não elimina automaticamente; modo espectador após eliminação.
 - Partidas de 7–14 dias; produção horária; eventos processados em intervalos de até um minuto; construções e treinamento limitados a 24 horas por ordem.
 - Servidor autoritativo, persistência offline, dados separados da interface e comunicação em tempo real.
+- Stack: Java 21 + Spring Boot, React + TypeScript + Vite, PostgreSQL e WebSocket.
 - Protótipo técnico Antigo/Medieval; primeira versão completa jogável com as quatro eras.
 
 ### 14.2 Parâmetros e conteúdos ainda a definir
 
+Esta é a lista única de pendências do projeto.
+
 As regras fundamentais estão consolidadas, mas vários valores e cadastros precisam ser produzidos durante o desenvolvimento:
 
-- nome oficial e identidade visual;
+- identidade visual (o nome oficial é **Warzation**);
 - lista final das nações jogáveis, capitais e províncias iniciais;
 - lista cartográfica completa das 50–60 províncias, cidades, geometrias e fronteiras;
 - fontes geográficas utilizadas para validar fronteiras, terrenos e depósitos;
@@ -656,7 +608,8 @@ As regras fundamentais estão consolidadas, mas vários valores e cadastros prec
 - função específica do Porto no MVP, antes da implementação das conexões marítimas;
 - duração do período de estabilidade para vitória diplomática;
 - limiares de rendição, consumo e desgaste em cercos;
-- stack de cliente, servidor, banco de dados e hospedagem.
+- infraestrutura necessária às unidades aéreas da Era Moderna;
+- hospedagem e bibliotecas complementares da stack aprovada.
 
 Quando um valor for necessário antes da decisão definitiva, a equipe deverá usar um parâmetro configurável, marcá-lo como **provisório para teste** e evitar fixá-lo de forma irreversível no código.
 
@@ -664,7 +617,7 @@ Quando um valor for necessário antes da decisão definitiva, a equipe deverá u
 
 ## 15. Orientações para membros da equipe e ferramentas de IA
 
-1. Leia este documento e `02_DIRECAO_DE_DESENVOLVIMENTO.md` antes de propor mudanças de mecânica ou arquitetura.
+1. Leia este documento, `02_DIRECAO_DE_DESENVOLVIMENTO.md` e `03_ARQUITETURA_E_STACK.md` antes de propor mudanças de mecânica ou arquitetura.
 2. Preserve as decisões confirmadas. Não transforme ideias futuras em requisitos do MVP.
 3. Diferencie **decisão confirmada**, **parâmetro provisório** e **pendência**.
 4. Não invente fronteiras fictícias para balancear o mapa; ajuste recursos e condições iniciais antes de alterar a geografia aprovada.

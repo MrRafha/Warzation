@@ -86,3 +86,110 @@ h1 {
 .connection-status.offline span {
   background: #dc7b75;
 }
+
+.connection-block {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.connection-detail,
+.config-error {
+  margin: 0;
+  color: #dc7b75;
+  font-size: 0.9rem;
+}
+
+.config-error code {
+  color: #eef4f1;
+}
+
+.muted {
+  color: #8fa39e;
+  font-size: 0.8rem;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #7ed6b2;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dev-room {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(238 244 241 / 12%);
+}
+
+.dev-room-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.dev-room h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.realtime-status {
+  color: #e2b765;
+  font-size: 0.8rem;
+}
+
+.realtime-status.open {
+  color: #65d19a;
+}
+
+.realtime-status.closed {
+  color: #dc7b75;
+}
+
+.counter {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.counter strong {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.dev-room-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dev-room-actions button {
+  padding: 0.6rem 1.2rem;
+  border: 1px solid #7ed6b2;
+  border-radius: 0.6rem;
+  background: #7ed6b2;
+  color: #101820;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dev-room-actions button.secondary {
+  background: transparent;
+  color: #7ed6b2;
+}
+
+.dev-room-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dev-room-error {
+  margin: 0;
+  color: #dc7b75;
+  font-size: 0.9rem;
+}
