@@ -93,14 +93,10 @@ Frontend/
   tests/             Testes da interface e dos fluxos
 
 Docs/
-  01_CONTEXTO_DO_PROJETO.md
-  02_DIRECAO_DE_DESENVOLVIMENTO.md
-  MAPA_E_DADOS.md
-  ECONOMIA_E_CONSTRUCOES.md
-  TECNOLOGIAS_E_ERAS.md
-  MILITAR_E_COMBATE.md
-  LOGISTICA_E_CERCOS.md
-  DIPLOMACIA_MERCADO_E_VITORIA.md
+  01_CONTEXTO_DO_PROJETO.md         Regras do jogo e pendências
+  02_DIRECAO_DE_DESENVOLVIMENTO.md  Escopo, fases, aceitação e testes
+  03_ARQUITETURA_E_STACK.md         Stack, módulos e modelo de dados
+  04_GUIA_DESENVOLVIMENTO_LOCAL.md  Instalação, execução e API inicial
 ```
 
 ## Estado atual
@@ -112,26 +108,20 @@ comunicação em tempo real. O desenvolvimento será feito no VS Code, com Git e
 GitHub para versionamento, em instalação local sem Docker.
 
 Os detalhes e responsabilidades da stack estão em
-[STACK_TECNICA.md](Docs/STACK_TECNICA.md).
+[03_ARQUITETURA_E_STACK.md](Docs/03_ARQUITETURA_E_STACK.md).
 
 O Backend já possui persistência inicial com PostgreSQL/Flyway e o contrato
 HTTP inicial em `/api/v1/health` e `/api/v1/metadata`.
 
 ## Documentação
 
-- [Contexto do projeto](Docs/01_CONTEXTO_DO_PROJETO.md)
-- [Direção de desenvolvimento](Docs/02_DIRECAO_DE_DESENVOLVIMENTO.md)
-- [Mapa e dados](Docs/MAPA_E_DADOS.md)
-- [Economia e construções](Docs/ECONOMIA_E_CONSTRUCOES.md)
-- [Tecnologias e eras](Docs/TECNOLOGIAS_E_ERAS.md)
-- [Militar e combate](Docs/MILITAR_E_COMBATE.md)
-- [Logística e cercos](Docs/LOGISTICA_E_CERCOS.md)
-- [Diplomacia, mercado e vitória](Docs/DIPLOMACIA_MERCADO_E_VITORIA.md)
-- [Stack técnica](Docs/STACK_TECNICA.md)
-- [Guia de desenvolvimento local](Docs/GUIA_DESENVOLVIMENTO_LOCAL.md)
+- [Contexto do projeto](Docs/01_CONTEXTO_DO_PROJETO.md) — fonte única das regras do jogo
+- [Direção de desenvolvimento](Docs/02_DIRECAO_DE_DESENVOLVIMENTO.md) — escopo, fases e critérios de aceitação
+- [Arquitetura e stack](Docs/03_ARQUITETURA_E_STACK.md)
+- [Guia de desenvolvimento local](Docs/04_GUIA_DESENVOLVIMENTO_LOCAL.md)
 
 ## Próximo passo
 
-Configurar os projetos Spring Boot e React/Vite e iniciar a Fase 0: mapa de
-teste com 8–12 províncias, modelo inicial de província e nação, dados
-configuráveis e protótipo visual para seleção de províncias.
+Concluir a Fase 0: mapa de teste com 8–12 províncias, modelo inicial de
+província e nação, dados configuráveis e protótipo visual para seleção de
+províncias no Frontend React/Vite.

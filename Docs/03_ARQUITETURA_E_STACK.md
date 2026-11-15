@@ -1,0 +1,145 @@
+# Warzation — Arquitetura e stack
+
+## Stack aprovada
+
+| Área | Tecnologia |
+|---|---|
+| Backend | Java 21 + Spring Boot + Maven instalado localmente |
+| Frontend | React + TypeScript + Vite |
+| Banco de dados | PostgreSQL |
+| Comunicação em tempo real | WebSocket |
+| Editor | VS Code |
+| Versionamento | Git + GitHub |
+| Ambiente | Instalação local, sem Docker |
+
+## Responsabilidades
+
+### Backend
+
+O backend será o servidor autoritativo do jogo. Ele deverá:
+
+- validar todas as ordens recebidas do cliente;
+- aplicar regras de mapa, economia, construções, pesquisa, militar,
+  logística, diplomacia e vitória;
+- persistir o estado no PostgreSQL;
+- processar eventos temporizados mesmo sem jogadores conectados;
+- publicar atualizações e eventos pelo WebSocket;
+- garantir idempotência e registrar operações críticas.
+
+### Frontend
+
+O frontend será responsável pela apresentação e interação:
+
+- renderizar o mapa e as lentes de informação;
+- apresentar estado recebido do servidor;
+- enviar ordens e exibir validações e resultados;
+- manter componentes organizados por funcionalidade;
+- não decidir saldo, propriedade, conclusão, combate ou vencedor.
+
+### Banco de dados
+
+O PostgreSQL será a fonte persistente do estado do mundo. O modelo deve
+preservar timestamps de ações, eventos importantes e dados suficientes para
+retomar o processamento após reinicializações.
+
+### Comunicação
+
+O WebSocket será usado para sincronização bidirecional entre servidor e
+clientes, para que a interface receba atualizações sem recarregar a página. Mensagens devem ter contratos explícitos, validação no servidor e
+identificação suficiente para evitar processamento duplicado.
+
+### Mapa
+
+O mapa é servido pelo backend, persistido no PostgreSQL e consumido pelo frontend. Províncias são nós de um grafo e fronteiras terrestres navegáveis são arestas. Geometrias e conteúdo cartográfico ficam em dados estruturados, nunca embutidos nos componentes da interface.
+
+## Arquitetura lógica
+
+Separar responsabilidades mantém o projeto testável.
+
+### Módulos de domínio sugeridos
+
+| Módulo | Responsabilidade |
+|---|---|
+| **World/Map** | Províncias, geometrias, cidades, terrenos, depósitos, fronteiras e adjacências. |
+| **Players/Nations** | Jogadores, nações, capitais, propriedade inicial e eliminação. |
+| **Economy** | Recursos, produção, estoques, consumo, custos e mercado. |
+| **Buildings** | Requisitos, espaços, construção, conclusão e efeitos. |
+| **Research** | Árvore tecnológica, pré-requisitos, fila única, eras, Biblioteca e marcos. |
+| **Military** | Unidades, exércitos, recrutamento, movimento e combate. |
+| **Logistics** | Estradas, capacidade, rotas alimentares, prioridades, reservas e abastecimento. |
+| **Siege/Pillage** | Isolamento, saque, dano de infraestrutura, desgaste e rendição. |
+| **Diplomacy** | Tratados, propostas, aceite, expiração, alianças e acesso. |
+| **Match/Lifecycle** | Relógio, persistência, eventos agendados, vitória e eliminação. |
+| **Realtime Gateway** | Sincronização de estado e notificações para os clientes. |
+
+Os módulos são uma divisão conceitual. A equipe pode adaptá-los à arquitetura selecionada, mantendo as responsabilidades separadas.
+
+### Modelo orientado a dados
+
+Manter definições separadas do código de execução. Entidades/configurações sugeridas:
+
+- `nations`: nomes, capital, províncias iniciais e configuração de equilíbrio;
+- `provinces`: geometria, cidade principal, fronteiras, terreno, depósitos, costa e espaços;
+- `resources`: tipos, era de disponibilidade e regras de estoque;
+- `buildings`: custo, tempo, tecnologia, terreno, efeito e espaço consumido;
+- `technologies`: era, pré-requisitos, desbloqueios, bônus e marco associado;
+- `units`: categoria, era, atributos, custo, treinamento e consumo;
+- `roads`: par de províncias conectadas, condição, capacidade, velocidade e estado;
+- `supply_rules`: demanda fixa, prioridades, capacidade e política de rota;
+- `market_rules`: tipos de oferta, taxa e forma de liquidação;
+- `diplomacy_rules`: tratados, requisitos, permissões e duração;
+- `victory_rules`: 60% territorial e estabilidade diplomática;
+- `match_rules`: relógio, ciclo de produção e timers.
+
+Os nomes são sugestões de organização, não exigência de banco ou formato.
+
+### Tempo, eventos e idempotência
+
+Evitar depender de um processo contínuo por jogador conectado.
+
+- Persistir timestamps de início e conclusão de ações.
+- Persistir o último instante de produção/consumo aplicado.
+- Ao processar uma entidade, calcular o tempo transcorrido e aplicar somente os efeitos ainda não processados.
+- Usar tarefas agendadas para ações que precisam ser resolvidas no horário.
+- Registrar eventos críticos de forma transacional sempre que possível.
+- Garantir idempotência: executar novamente um evento não pode duplicar produção, cobrança, movimento, combate ou recompensa.
+
+### Segurança e autoridade
+
+- Cliente nunca define saldo, propriedade, conclusão ou vencedor.
+- Validar toda ordem no servidor: propriedade, recursos, tecnologia, espaço, conexão, tratado e estado da partida.
+- Proteger operações simultâneas de estoque para impedir gastos duplicados.
+- Registrar histórico de operações econômicas, militares e diplomáticas.
+- Não confiar em timers ou relógios enviados pelo navegador.
+
+## Ambiente local
+
+O projeto será executado localmente, sem Docker. A instalação de Java 21,
+Node.js, npm e PostgreSQL faz parte da configuração de desenvolvimento. As
+variáveis de conexão e demais configurações locais não devem ser commitadas;
+um arquivo de exemplo deverá documentar os nomes esperados.
+
+## Organização inicial
+
+- `Backend/`: aplicação Spring Boot, domínio, persistência e WebSocket.
+- `Frontend/`: aplicação React/Vite, componentes, telas e cliente WebSocket.
+- `Backend/data/`: dados configuráveis do mapa e regras do jogo.
+- `Docs/`: regras do jogo, direção de desenvolvimento, arquitetura e guia local.
+
+O Maven deve estar instalado localmente e disponível no `PATH`. Os comandos
+do Backend usam `mvn` diretamente.
+
+O PostgreSQL é o banco de produção/desenvolvimento local. O perfil `test` usa
+um banco H2 em memória apenas para testes automatizados rápidos; a migration
+do PostgreSQL continua versionada separadamente em `src/main/resources`.
+
+As migrations do schema são gerenciadas pelo Flyway. O Backend não deve criar
+ou alterar tabelas automaticamente via Hibernate.
+
+## Critérios para a primeira implementação
+
+1. O backend inicia e conecta ao PostgreSQL local.
+2. O frontend inicia com Vite e consegue acessar o backend.
+3. Dois clientes recebem o mesmo estado de uma partida pelo WebSocket.
+4. Uma ordem inválida é rejeitada pelo backend com erro explícito.
+5. O estado persistido sobrevive à reinicialização do backend.
