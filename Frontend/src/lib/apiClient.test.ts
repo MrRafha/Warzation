@@ -31,6 +31,21 @@ describe("createApiClient", () => {
     expect(init.headers["Content-Type"]).toBe("application/json");
   });
 
+  it("envia o token do jogador quando houver", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => jsonResponse(200, {}));
+    let token: string | null = null;
+    const api = createApiClient("http://api.test", fetchMock, () => token);
+
+    await api.get("/sem-token");
+    token = "abc-123";
+    await api.get("/com-token");
+    await api.get("/outro", { token: "token-explicito" });
+
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBeUndefined();
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe("Bearer abc-123");
+    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe("Bearer token-explicito");
+  });
+
   it("converte erros HTTP no formato padrão da API", async () => {
     const api = createApiClient(
       "http://api.test",

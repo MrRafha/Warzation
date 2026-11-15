@@ -45,17 +45,21 @@ start_backend
 expect_eq "$(curl -fsS "$API/api/v1/scenarios/nordeste-teste" | jq '.scenario.provinces | length')" "24" \
   "cenário do mapa empacotado no jar e servido pela API"
 before=$(curl -fsS "$API/api/v1/rooms/dev" | jq .counter)
-status=$(curl -sS -o /tmp/first.json -w '%{http_code}' -H 'Content-Type: application/json' \
+status=$(curl -sS -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
   -d "$COMMAND" "$API/api/v1/rooms/dev/commands")
+expect_eq "$status" "401" "comando sem jogador identificado é recusado"
+status=$(curl -sS -o /tmp/first.json -w '%{http_code}' -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $PLAYER_1_TOKEN" -d "$COMMAND" "$API/api/v1/rooms/dev/commands")
 expect_eq "$status" "201" "primeiro envio aplicado"
 expect_eq "$(jq -r .status /tmp/first.json)" "APPLIED" "status APPLIED"
+expect_eq "$(jq -r .playerId /tmp/first.json)" "jogador-1" "comando registrado com o jogador do token"
 stop_backend
 
 start_backend
 after=$(curl -fsS "$API/api/v1/rooms/dev" | jq .counter)
 expect_eq "$after" "$((before + 3))" "contador persistiu após reinício"
 status=$(curl -sS -o /tmp/again.json -w '%{http_code}' -H 'Content-Type: application/json' \
-  -d "$COMMAND" "$API/api/v1/rooms/dev/commands")
+  -H "Authorization: Bearer $PLAYER_1_TOKEN" -d "$COMMAND" "$API/api/v1/rooms/dev/commands")
 expect_eq "$status" "200" "reenvio após reinício"
 expect_eq "$(jq -r .status /tmp/again.json)" "DUPLICATE" "reenvio marcado como DUPLICATE"
 expect_eq "$(curl -fsS "$API/api/v1/rooms/dev" | jq .counter)" "$((before + 3))" "reenvio não duplicou"

@@ -4,6 +4,8 @@ import com.warzation.application.CommandConflictException;
 import com.warzation.application.InvalidCommandException;
 import com.warzation.application.ResourceNotFoundException;
 import com.warzation.application.map.NoRouteException;
+import com.warzation.application.player.UnauthenticatedException;
+import org.springframework.http.HttpHeaders;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -67,6 +69,17 @@ public class GlobalExceptionHandler {
             ResourceNotFoundException exception,
             HttpServletRequest request) {
         return response(HttpStatus.NOT_FOUND, "NOT_FOUND", exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(UnauthenticatedException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnauthenticated(
+            UnauthenticatedException exception,
+            HttpServletRequest request) {
+        ApiErrorResponse body = new ApiErrorResponse(OffsetDateTime.now(), HttpStatus.UNAUTHORIZED.value(),
+                "UNAUTHENTICATED", exception.getMessage(), request.getRequestURI(), Map.of());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(HttpHeaders.WWW_AUTHENTICATE, "Bearer")
+                .body(body);
     }
 
     @ExceptionHandler(NoRouteException.class)

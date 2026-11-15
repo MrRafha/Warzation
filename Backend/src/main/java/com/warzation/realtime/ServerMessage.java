@@ -17,6 +17,7 @@ public record ServerMessage(String type, String id, String replyTo, String roomI
 
     public static final class Types {
         public static final String CONNECTED = "CONNECTED";
+        public static final String AUTHENTICATED = "AUTHENTICATED";
         public static final String ROOM_STATE = "ROOM_STATE";
         public static final String COMMAND_RESULT = "COMMAND_RESULT";
         public static final String LEFT_ROOM = "LEFT_ROOM";

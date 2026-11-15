@@ -66,6 +66,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Tokens aleatórios por execução: nada fixo no repositório.
+      - name: Gerar tokens dos jogadores de teste
+        run: |
+          for n in 1 2; do
+            token=$(openssl rand -hex 24)
+            echo "::add-mask::$token"
+            echo "PLAYER_${n}_TOKEN=$token" >> "$GITHUB_ENV"
+          done
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

@@ -5,6 +5,7 @@ import com.warzation.application.CommandResult;
 import com.warzation.application.InvalidCommandException;
 import com.warzation.application.RoomCommandService;
 import com.warzation.application.RoomState;
+import com.warzation.application.player.Player;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -39,9 +40,10 @@ public class RoomController {
 
     @PostMapping("/{roomId}/commands")
     public ResponseEntity<CommandResult> executeCommand(
+            @CurrentPlayer Player player,
             @PathVariable String roomId,
             @RequestBody JsonNode body) {
-        CommandResult result = commandService.execute(roomId, commandMapper.toCommand(body));
+        CommandResult result = commandService.execute(roomId, player.id(), commandMapper.toCommand(body));
         HttpStatus status = result.status() == CommandResult.Status.APPLIED ? HttpStatus.CREATED : HttpStatus.OK;
         return ResponseEntity.status(status).body(result);
     }

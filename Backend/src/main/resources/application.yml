@@ -24,6 +24,16 @@ application:
   web:
     # Origens do navegador autorizadas na API HTTP e no WebSocket (separadas por vírgula, sem '*').
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  players:
+    # Jogadores de teste do protótipo (provisório, sem contas). Defina os tokens no
+    # ambiente ou em application-local.yml; token vazio desativa o jogador.
+    test-players:
+      - id: jogador-1
+        name: Jogador 1
+        token: ${PLAYER_1_TOKEN:}
+      - id: jogador-2
+        name: Jogador 2
+        token: ${PLAYER_2_TOKEN:}
 
 management:
   endpoints:

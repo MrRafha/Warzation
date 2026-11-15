@@ -28,12 +28,21 @@ export type ApiClient = {
 export type RequestOptions = {
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Token de jogador só para esta requisição (ex.: validar antes de guardar). */
+  token?: string;
 };
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 
-/** Cliente HTTP único da aplicação: base URL, timeout e erros padronizados. */
-export function createApiClient(baseUrl: string, fetchImpl: typeof fetch = fetch): ApiClient {
+/**
+ * Cliente HTTP único da aplicação: base URL, timeout, erros padronizados e o
+ * token do jogador (`Authorization: Bearer`) quando houver.
+ */
+export function createApiClient(
+  baseUrl: string,
+  fetchImpl: typeof fetch = fetch,
+  getToken: () => string | null = () => null,
+): ApiClient {
   async function request<T>(method: string, path: string, body: unknown, options: RequestOptions = {}) {
     const controller = new AbortController();
     let timedOut = false;
@@ -46,13 +55,18 @@ export function createApiClient(baseUrl: string, fetchImpl: typeof fetch = fetch
 
     let response: Response;
     try {
+      const headers: Record<string, string> = { Accept: "application/json" };
+      if (body !== undefined) {
+        headers["Content-Type"] = "application/json";
+      }
+      const token = options.token ?? getToken();
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
       response = await fetchImpl(`${baseUrl}${path}`, {
         method,
         signal: controller.signal,
-        headers: body === undefined ? { Accept: "application/json" } : {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
+        headers,
         body: body === undefined ? undefined : JSON.stringify(body),
       });
     } catch (error) {

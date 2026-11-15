@@ -9,6 +9,8 @@ import com.warzation.application.InvalidCommandException;
 import com.warzation.application.ResourceNotFoundException;
 import com.warzation.application.RoomCommandService;
 import com.warzation.application.RoomState;
+import com.warzation.application.player.Player;
+import com.warzation.application.player.PlayerDirectory;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +30,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 public class RoomWebSocketHandler extends TextWebSocketHandler {
 
     static final int MAX_MESSAGE_CHARS = 8 * 1024;
+    static final int MAX_FAILED_AUTHENTICATIONS = 3;
 
     private static final Logger log = LoggerFactory.getLogger(RoomWebSocketHandler.class);
 
@@ -36,18 +39,21 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
     private final RealtimeSender sender;
     private final RoomCommandService commandService;
     private final RoomCommandMapper commandMapper;
+    private final PlayerDirectory players;
 
     public RoomWebSocketHandler(
             ObjectMapper objectMapper,
             RoomSessionRegistry registry,
             RealtimeSender sender,
             RoomCommandService commandService,
-            RoomCommandMapper commandMapper) {
+            RoomCommandMapper commandMapper,
+            PlayerDirectory players) {
         this.objectMapper = objectMapper;
         this.registry = registry;
         this.sender = sender;
         this.commandService = commandService;
         this.commandMapper = commandMapper;
+        this.players = players;
     }
 
     @Override
@@ -86,12 +92,46 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         JsonNode payload = envelope.get("payload");
 
         switch (type) {
-            case "JOIN_ROOM" -> joinRoom(session, messageId, payload);
-            case "LEAVE_ROOM" -> leaveRoom(session, messageId);
-            case "COMMAND" -> executeCommand(session, messageId, payload);
+            case "AUTHENTICATE" -> authenticate(session, messageId, payload);
             case "PING" -> sender.send(session, ServerMessage.of(ServerMessage.Types.PONG, messageId, null, null));
+            case "JOIN_ROOM", "LEAVE_ROOM", "COMMAND" -> {
+                Optional<Player> player = registry.playerOf(session.getId());
+                if (player.isEmpty()) {
+                    reject(session, messageId, "UNAUTHENTICATED",
+                            "Envie AUTHENTICATE com o token do jogador antes de " + type, Map.of());
+                    return;
+                }
+                switch (type) {
+                    case "JOIN_ROOM" -> joinRoom(session, messageId, payload);
+                    case "LEAVE_ROOM" -> leaveRoom(session, messageId);
+                    default -> executeCommand(session, messageId, player.get(), payload);
+                }
+            }
             default -> reject(session, messageId, "UNKNOWN_TYPE", "Tipo de mensagem desconhecido: " + type, Map.of());
         }
+    }
+
+    private void authenticate(WebSocketSession session, String messageId, JsonNode payload) throws IOException {
+        String token = payload == null ? null : textField(payload, "token").orElse(null);
+        Optional<Player> player = players.authenticate(token);
+        if (player.isEmpty()) {
+            int failures = registry.recordFailedAuthentication(session.getId());
+            reject(session, messageId, "UNAUTHENTICATED", "Token de jogador inválido", Map.of());
+            if (failures >= MAX_FAILED_AUTHENTICATIONS) {
+                log.warn("Sessão {} encerrada após {} tentativas de identificação inválidas", session.getId(), failures);
+                session.close(CloseStatus.POLICY_VIOLATION);
+            }
+            return;
+        }
+        Optional<Player> current = registry.playerOf(session.getId());
+        if (current.isPresent() && !current.get().id().equals(player.get().id())) {
+            reject(session, messageId, "ALREADY_AUTHENTICATED",
+                    "Esta conexão já pertence a " + current.get().id() + "; abra outra conexão para trocar de jogador",
+                    Map.of());
+            return;
+        }
+        registry.authenticate(session.getId(), player.get());
+        sender.send(session, ServerMessage.of(ServerMessage.Types.AUTHENTICATED, messageId, null, player.get()));
     }
 
     private void joinRoom(WebSocketSession session, String messageId, JsonNode payload) {
@@ -115,7 +155,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         sender.send(session, ServerMessage.of(ServerMessage.Types.LEFT_ROOM, messageId, roomId, null));
     }
 
-    private void executeCommand(WebSocketSession session, String messageId, JsonNode payload) {
+    private void executeCommand(WebSocketSession session, String messageId, Player player, JsonNode payload) {
         Optional<String> roomId = registry.roomOf(session.getId());
         if (roomId.isEmpty()) {
             reject(session, messageId, "NOT_IN_ROOM", "Entre em uma sala com JOIN_ROOM antes de enviar comandos",
@@ -123,7 +163,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
             return;
         }
         try {
-            CommandResult result = commandService.execute(roomId.get(), commandMapper.toCommand(payload));
+            CommandResult result = commandService.execute(roomId.get(), player.id(), commandMapper.toCommand(payload));
             sender.send(session, ServerMessage.of(ServerMessage.Types.COMMAND_RESULT, messageId, roomId.get(), result));
         } catch (InvalidCommandException exception) {
             reject(session, messageId, "INVALID_COMMAND", exception.getMessage(), exception.getFields());

@@ -37,6 +37,7 @@ const MAX_RETRY_MS = 10_000;
 export class RealtimeClient {
   private readonly url: string;
   private readonly createSocket: SocketFactory;
+  private readonly token: string | null;
   private socket: SocketLike | null = null;
   private roomId: string | null = null;
   private retryMs = INITIAL_RETRY_MS;
@@ -46,9 +47,18 @@ export class RealtimeClient {
   private readonly messageListeners = new Set<Listener<ServerMessage>>();
   private readonly stateListeners = new Set<Listener<ConnectionState>>();
 
-  constructor(url: string, createSocket: SocketFactory = (target) => new WebSocket(target)) {
+  /**
+   * @param token token do jogador; enviado em AUTHENTICATE a cada conexão,
+   *   antes de entrar na sala. O servidor processa as mensagens em ordem.
+   */
+  constructor(
+    url: string,
+    createSocket: SocketFactory = (target) => new WebSocket(target),
+    token: string | null = null,
+  ) {
     this.url = url;
     this.createSocket = createSocket;
+    this.token = token;
   }
 
   connect(): void {
@@ -107,6 +117,9 @@ export class RealtimeClient {
     socket.onopen = () => {
       this.retryMs = INITIAL_RETRY_MS;
       this.setState("open");
+      if (this.token) {
+        this.send("AUTHENTICATE", { token: this.token });
+      }
       if (this.roomId) {
         this.send("JOIN_ROOM", { roomId: this.roomId });
       }

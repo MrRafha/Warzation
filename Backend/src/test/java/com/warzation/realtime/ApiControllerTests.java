@@ -88,8 +88,10 @@ class ApiControllerTests {
     void corsAllowsConfiguredLocalOrigin() throws Exception {
         mockMvc.perform(options("/api/v1/health")
                         .header("Origin", "http://localhost:5173")
-                        .header("Access-Control-Request-Method", "GET"))
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers", "Authorization"))
                 .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Headers", containsString("Authorization")))
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
 
         mockMvc.perform(get("/api/v1/health").header("Origin", "http://localhost:5173"))

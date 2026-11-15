@@ -12,3 +12,12 @@ spring:
 
 application:
   version: test
+  players:
+    # Tokens fixos só para os testes automatizados.
+    test-players:
+      - id: jogador-1
+        name: Jogador 1
+        token: token-de-teste-jogador-1
+      - id: jogador-2
+        name: Jogador 2
+        token: token-de-teste-jogador-2

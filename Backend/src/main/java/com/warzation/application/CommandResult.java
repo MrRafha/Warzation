@@ -15,6 +15,7 @@ import java.util.UUID;
 public record CommandResult(
         UUID commandId,
         String roomId,
+        String playerId,
         String type,
         long amount,
         Status status,
@@ -32,6 +33,7 @@ public record CommandResult(
         return new CommandResult(
                 command.getCommandId(),
                 command.getRoomId(),
+                command.getPlayerId(),
                 command.getCommandType(),
                 command.getAmount(),
                 status,

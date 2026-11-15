@@ -11,6 +11,17 @@ spring:
 server:
   port: 8080
 
+application:
+  players:
+    test-players:
+      - id: jogador-1
+        name: Jogador 1
+        token: ${PLAYER_1_TOKEN}
+      - id: jogador-2
+        name: Jogador 2
+        token: ${PLAYER_2_TOKEN}
+
 # Ative este perfil com --spring.profiles.active=local.
-# Defina DB_PASSWORD no ambiente ou substitua os valores apenas localmente.
+# Defina DB_PASSWORD, PLAYER_1_TOKEN e PLAYER_2_TOKEN no ambiente ou substitua os
+# valores apenas localmente (tokens com ao menos 16 caracteres, diferentes entre si).
 # Nunca versione credenciais reais.
