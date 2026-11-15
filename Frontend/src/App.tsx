@@ -5,7 +5,8 @@ import { DevRoomPanel } from "./features/devRoom/DevRoomPanel";
 import { MapScreen } from "./features/map/MapScreen";
 import { loadScenarioFromApi } from "./features/map/scenario";
 import { PlayerBar } from "./features/player/PlayerBar";
-import { usePlayerSession } from "./features/player/usePlayerSession";
+import { usePlayerSession, type PlayerSession } from "./features/player/usePlayerSession";
+import { MatchLobby } from "./features/match/MatchLobby";
 import { createApiClient } from "./lib/apiClient";
 import { readConfig, type AppConfig } from "./lib/config";
 import { readStoredToken } from "./lib/playerSession";
@@ -34,19 +35,23 @@ function ConnectedApp({ config }: { config: AppConfig }) {
   const api = useMemo(() => createApiClient(config.apiBaseUrl, undefined, readStoredToken), [config.apiBaseUrl]);
   const loadScenario = useCallback(() => loadScenarioFromApi(api), [api]);
   const { health, retry } = useBackendHealth(api);
+  const { session, login, logout } = usePlayerSession(api);
   const online = health.status === "online";
+  const playerId = session.status === "authenticated" ? session.player.id : null;
 
   return (
     <Layout
       status={
         <div className="status-column">
           <ConnectionStatus health={health} onRetry={retry} />
-          {online && <PlayerArea api={api} wsUrl={config.wsUrl} />}
+          {online && (
+            <PlayerArea session={session} onLogin={login} onLogout={logout} wsUrl={config.wsUrl} />
+          )}
         </div>
       }
       main={
         online ? (
-          <MapScreen loadScenario={loadScenario} />
+          <MapScreen loadScenario={loadScenario} aside={<MatchLobby key={playerId ?? "anonimo"} api={api} playerId={playerId} />} />
         ) : (
           health.status === "offline" && (
             <p className="muted map-placeholder">O mapa aparece quando o Backend estiver conectado.</p>
@@ -57,15 +62,21 @@ function ConnectedApp({ config }: { config: AppConfig }) {
   );
 }
 
+type PlayerAreaProps = {
+  session: PlayerSession;
+  onLogin: (token: string) => void;
+  onLogout: () => void;
+  wsUrl: string;
+};
+
 /** Jogador da aba e ferramentas que dependem dele. */
-function PlayerArea({ api, wsUrl }: { api: ReturnType<typeof createApiClient>; wsUrl: string }) {
-  const { session, login, logout } = usePlayerSession(api);
+function PlayerArea({ session, onLogin, onLogout, wsUrl }: PlayerAreaProps) {
   const token = session.status === "authenticated" ? session.token : null;
   const realtime = useMemo(() => (token ? new RealtimeClient(wsUrl, undefined, token) : null), [wsUrl, token]);
 
   return (
     <>
-      <PlayerBar session={session} onLogin={login} onLogout={logout} />
+      <PlayerBar session={session} onLogin={onLogin} onLogout={onLogout} />
       <details className="dev-tools">
         <summary>Ferramentas de desenvolvimento</summary>
         {realtime ? (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { DEFAULT_TERRAIN_COLOR, terrainColor } from "./labels";
 import { ProvinceList } from "./ProvinceList";
 import { ProvincePanel } from "./ProvincePanel";
@@ -8,9 +8,11 @@ import { useScenario } from "./useScenario";
 
 type Props = {
   loadScenario: () => Promise<Scenario>;
+  /** Conteúdo extra no topo da coluna lateral (ex.: lobby de partidas). */
+  aside?: ReactNode;
 };
 
-export function MapScreen({ loadScenario }: Props) {
+export function MapScreen({ loadScenario, aside }: Props) {
   const state = useScenario(loadScenario);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -40,6 +42,7 @@ export function MapScreen({ loadScenario }: Props) {
         </ul>
       </div>
       <div className="side-column">
+        {aside}
         <ProvincePanel scenario={scenario} provinceId={selectedId} onSelect={setSelectedId} />
         <ProvinceList scenario={scenario} selectedId={selectedId} onSelect={setSelectedId} />
       </div>
