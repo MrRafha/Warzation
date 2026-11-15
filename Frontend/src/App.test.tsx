@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { FakeSocket } from "./test/fakeSocket";
@@ -128,6 +128,8 @@ it("mostra o estado oficial da sala de teste e envia comandos pelo WebSocket", a
 
   await loginAs(PLAYER_TOKEN);
   await screen.findByText("Sala de teste");
+  // O socket nasce no efeito do painel; em máquinas lentas ele vem depois do texto.
+  await waitFor(() => expect(FakeSocket.instances).not.toHaveLength(0));
 
   const socket = FakeSocket.latest();
   expect(socket.url).toBe("ws://api.test/ws");
