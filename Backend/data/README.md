@@ -71,6 +71,12 @@ O que **não** entra no cenário, de propósito:
 Mapa do protótipo técnico: os 9 estados do Nordeste, cada um como uma
 província, com a capital estadual como cidade principal.
 
+![Prévia do cenário nordeste-teste](scenarios/nordeste-teste/preview.png)
+
+A prévia é gerada por `python tools/mapdata/render_preview.py
+Backend/data/scenarios/nordeste-teste` (requer `matplotlib`); regenere-a ao
+mudar o cenário.
+
 ### Fronteiras e conexões
 
 As 14 conexões foram **calculadas a partir da geometria** (estados que
