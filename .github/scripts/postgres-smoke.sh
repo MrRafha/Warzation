@@ -42,6 +42,8 @@ COMMAND_ID=$(cat /proc/sys/kernel/random/uuid)
 COMMAND=$(printf '{"commandId":"%s","type":"INCREMENT_COUNTER","payload":{"amount":3}}' "$COMMAND_ID")
 
 start_backend
+expect_eq "$(curl -fsS "$API/api/v1/scenarios/nordeste-teste" | jq '.scenario.provinces | length')" "24" \
+  "cenário do mapa empacotado no jar e servido pela API"
 before=$(curl -fsS "$API/api/v1/rooms/dev" | jq .counter)
 status=$(curl -sS -o /tmp/first.json -w '%{http_code}' -H 'Content-Type: application/json' \
   -d "$COMMAND" "$API/api/v1/rooms/dev/commands")
@@ -59,6 +61,8 @@ expect_eq "$(jq -r .status /tmp/again.json)" "DUPLICATE" "reenvio marcado como D
 expect_eq "$(curl -fsS "$API/api/v1/rooms/dev" | jq .counter)" "$((before + 3))" "reenvio não duplicou"
 expect_eq "$(curl -fsS "$API/api/v1/rooms/dev/commands/$COMMAND_ID" | jq .resultingCounter)" "$((before + 3))" \
   "resultado do comando consultável"
+expect_eq "$(grep -c 'Cenário nordeste-teste carregado.*UNCHANGED' backend.log)" "1" \
+  "recarga do cenário no reinício não regrava o banco"
 stop_backend
 
 echo "Smoke com PostgreSQL concluído"

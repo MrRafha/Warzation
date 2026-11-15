@@ -3,6 +3,7 @@ package com.warzation.config;
 import com.warzation.application.CommandConflictException;
 import com.warzation.application.InvalidCommandException;
 import com.warzation.application.ResourceNotFoundException;
+import com.warzation.application.map.NoRouteException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -66,6 +67,11 @@ public class GlobalExceptionHandler {
             ResourceNotFoundException exception,
             HttpServletRequest request) {
         return response(HttpStatus.NOT_FOUND, "NOT_FOUND", exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(NoRouteException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoRoute(NoRouteException exception, HttpServletRequest request) {
+        return response(HttpStatus.UNPROCESSABLE_ENTITY, "NO_ROUTE", exception.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(CommandConflictException.class)
