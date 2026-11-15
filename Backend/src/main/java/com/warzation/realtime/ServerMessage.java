@@ -9,7 +9,7 @@ import java.util.UUID;
  * @param type     tipo da mensagem (ver {@link Types})
  * @param id       identificador único gerado pelo servidor
  * @param replyTo  {@code id} da mensagem do cliente que originou esta resposta, se houver
- * @param roomId   sala a que a mensagem se refere, se houver
+ * @param roomId   sala ou partida a que a mensagem se refere, se houver
  * @param payload  conteúdo, cujo formato depende do tipo
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -19,6 +19,7 @@ public record ServerMessage(String type, String id, String replyTo, String roomI
         public static final String CONNECTED = "CONNECTED";
         public static final String AUTHENTICATED = "AUTHENTICATED";
         public static final String ROOM_STATE = "ROOM_STATE";
+        public static final String MATCH_STATE = "MATCH_STATE";
         public static final String COMMAND_RESULT = "COMMAND_RESULT";
         public static final String LEFT_ROOM = "LEFT_ROOM";
         public static final String PONG = "PONG";

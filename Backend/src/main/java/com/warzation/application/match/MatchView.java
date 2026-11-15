@@ -12,6 +12,7 @@ public record MatchView(
         int maxPlayers,
         String createdBy,
         OffsetDateTime createdAt,
+        OffsetDateTime startedAt,
         List<Participant> participants,
         List<Nation> nations) {
 

@@ -69,6 +69,8 @@ expect_eq "$(post_as "$PLAYER_2_TOKEN" "/api/v1/matches/$MATCH_ID/participants" 
   "{\"commandId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"nationId\":\"parnaiba\"}")" "409" "nação ocupada recusada"
 expect_eq "$(post_as "$PLAYER_2_TOKEN" "/api/v1/matches/$MATCH_ID/participants" \
   "{\"commandId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"nationId\":\"sao-francisco\"}")" "201" "jogador 2 entrou"
+expect_eq "$(post_as "$PLAYER_1_TOKEN" "/api/v1/matches/$MATCH_ID/start" \
+  "{\"commandId\":\"$(cat /proc/sys/kernel/random/uuid)\"}")" "201" "partida iniciada com a posição inicial"
 stop_backend
 
 start_backend
@@ -83,9 +85,20 @@ expect_eq "$(curl -fsS "$API/api/v1/rooms/dev/commands/$COMMAND_ID" | jq .result
   "resultado do comando consultável"
 expect_eq "$(curl -fsS "$API/api/v1/matches/$MATCH_ID" | jq '.participants | length')" "2" \
   "participantes da partida persistiram após reinício"
+STATE=$(curl -fsS -H "Authorization: Bearer $PLAYER_2_TOKEN" "$API/api/v1/matches/$MATCH_ID/state")
+expect_eq "$(echo "$STATE" | jq '.provinces | length')" "24" "estado territorial persistiu após reinício"
+expect_eq "$(echo "$STATE" | jq '[.provinces[] | select(.ownerNationId == "parnaiba")] | length')" "3" \
+  "nação do jogador 1 com 3 províncias"
+expect_eq "$(echo "$STATE" | jq '[.provinces[] | select(.ownerNationId != null) | .units[].quantity] | add')" "12" \
+  "6 infantarias por jogador"
+expect_eq "$(curl -fsS -H "Authorization: Bearer $PLAYER_1_TOKEN" "$API/api/v1/matches/$MATCH_ID/events" \
+  | jq -c '[.[].type]')" '["MATCH_CREATED","PLAYER_JOINED","PLAYER_JOINED","MATCH_STARTED"]' \
+  "histórico da partida persistiu em ordem"
 expect_eq "$(post_as "$PLAYER_1_TOKEN" "/api/v1/matches/$MATCH_ID/participants" "$JOIN_BODY")" "200" \
   "reenvio da entrada após reinício"
 expect_eq "$(jq -r .status /tmp/resp.json)" "DUPLICATE" "entrada reenviada não duplica o participante"
+expect_eq "$(curl -fsS -H "Authorization: Bearer $PLAYER_1_TOKEN" "$API/api/v1/matches/$MATCH_ID/events" | jq length)" "4" \
+  "reenvio não gera evento"
 expect_eq "$(grep -c 'Cenário nordeste-teste carregado.*UNCHANGED' backend.log)" "1" \
   "recarga do cenário no reinício não regrava o banco"
 stop_backend

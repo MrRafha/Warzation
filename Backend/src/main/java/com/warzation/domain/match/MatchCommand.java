@@ -15,6 +15,7 @@ public class MatchCommand {
 
     public static final String CREATE_MATCH = "CREATE_MATCH";
     public static final String JOIN_MATCH = "JOIN_MATCH";
+    public static final String START_MATCH = "START_MATCH";
 
     @Id
     @Column(name = "command_id", nullable = false)

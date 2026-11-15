@@ -9,6 +9,9 @@ import com.warzation.application.InvalidCommandException;
 import com.warzation.application.ResourceNotFoundException;
 import com.warzation.application.RoomCommandService;
 import com.warzation.application.RoomState;
+import com.warzation.application.match.MatchRuleException;
+import com.warzation.application.match.MatchService;
+import com.warzation.application.match.MatchSnapshot;
 import com.warzation.application.player.Player;
 import com.warzation.application.player.PlayerDirectory;
 import java.io.IOException;
@@ -40,6 +43,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
     private final RoomCommandService commandService;
     private final RoomCommandMapper commandMapper;
     private final PlayerDirectory players;
+    private final MatchService matchService;
 
     public RoomWebSocketHandler(
             ObjectMapper objectMapper,
@@ -47,13 +51,15 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
             RealtimeSender sender,
             RoomCommandService commandService,
             RoomCommandMapper commandMapper,
-            PlayerDirectory players) {
+            PlayerDirectory players,
+            MatchService matchService) {
         this.objectMapper = objectMapper;
         this.registry = registry;
         this.sender = sender;
         this.commandService = commandService;
         this.commandMapper = commandMapper;
         this.players = players;
+        this.matchService = matchService;
     }
 
     @Override
@@ -94,7 +100,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         switch (type) {
             case "AUTHENTICATE" -> authenticate(session, messageId, payload);
             case "PING" -> sender.send(session, ServerMessage.of(ServerMessage.Types.PONG, messageId, null, null));
-            case "JOIN_ROOM", "LEAVE_ROOM", "COMMAND" -> {
+            case "JOIN_ROOM", "LEAVE_ROOM", "COMMAND", "JOIN_MATCH" -> {
                 Optional<Player> player = registry.playerOf(session.getId());
                 if (player.isEmpty()) {
                     reject(session, messageId, "UNAUTHENTICATED",
@@ -102,6 +108,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
                     return;
                 }
                 switch (type) {
+                    case "JOIN_MATCH" -> joinMatch(session, messageId, player.get(), payload);
                     case "JOIN_ROOM" -> joinRoom(session, messageId, payload);
                     case "LEAVE_ROOM" -> leaveRoom(session, messageId);
                     default -> executeCommand(session, messageId, player.get(), payload);
@@ -147,6 +154,25 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
             sender.send(session, ServerMessage.of(ServerMessage.Types.ROOM_STATE, messageId, state.roomId(), state));
         } catch (ResourceNotFoundException exception) {
             reject(session, messageId, "ROOM_NOT_FOUND", exception.getMessage(), Map.of());
+        }
+    }
+
+    /** Entra no canal de uma partida; só participantes. Responde com o estado completo. */
+    private void joinMatch(WebSocketSession session, String messageId, Player player, JsonNode payload) {
+        Optional<String> matchId = payload == null ? Optional.empty() : textField(payload, "matchId");
+        if (matchId.isEmpty()) {
+            reject(session, messageId, "INVALID_MESSAGE", "JOIN_MATCH exige payload.matchId",
+                    Map.of("payload.matchId", "obrigatório"));
+            return;
+        }
+        try {
+            MatchSnapshot snapshot = matchService.snapshotFor(player, matchId.get());
+            registry.join(session.getId(), MatchStateBroadcaster.channel(matchId.get()));
+            sender.send(session, ServerMessage.of(ServerMessage.Types.MATCH_STATE, messageId, matchId.get(), snapshot));
+        } catch (ResourceNotFoundException exception) {
+            reject(session, messageId, "MATCH_NOT_FOUND", exception.getMessage(), Map.of());
+        } catch (MatchRuleException exception) {
+            reject(session, messageId, exception.getReason().name(), exception.getMessage(), Map.of());
         }
     }
 
