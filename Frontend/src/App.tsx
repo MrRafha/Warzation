@@ -4,8 +4,11 @@ import { useBackendHealth } from "./features/connection/useBackendHealth";
 import { DevRoomPanel } from "./features/devRoom/DevRoomPanel";
 import { MapScreen } from "./features/map/MapScreen";
 import { loadScenarioFromApi } from "./features/map/scenario";
+import { PlayerBar } from "./features/player/PlayerBar";
+import { usePlayerSession } from "./features/player/usePlayerSession";
 import { createApiClient } from "./lib/apiClient";
 import { readConfig, type AppConfig } from "./lib/config";
+import { readStoredToken } from "./lib/playerSession";
 import { RealtimeClient } from "./lib/realtimeClient";
 import "./styles/app.css";
 
@@ -28,15 +31,19 @@ export function App() {
 }
 
 function ConnectedApp({ config }: { config: AppConfig }) {
-  const api = useMemo(() => createApiClient(config.apiBaseUrl), [config.apiBaseUrl]);
-  const realtime = useMemo(() => new RealtimeClient(config.wsUrl), [config.wsUrl]);
+  const api = useMemo(() => createApiClient(config.apiBaseUrl, undefined, readStoredToken), [config.apiBaseUrl]);
   const loadScenario = useCallback(() => loadScenarioFromApi(api), [api]);
   const { health, retry } = useBackendHealth(api);
   const online = health.status === "online";
 
   return (
     <Layout
-      status={<ConnectionStatus health={health} onRetry={retry} />}
+      status={
+        <div className="status-column">
+          <ConnectionStatus health={health} onRetry={retry} />
+          {online && <PlayerArea api={api} wsUrl={config.wsUrl} />}
+        </div>
+      }
       main={
         online ? (
           <MapScreen loadScenario={loadScenario} />
@@ -46,12 +53,32 @@ function ConnectedApp({ config }: { config: AppConfig }) {
           )
         )
       }
-      devTools={online ? <DevRoomPanel client={realtime} /> : null}
     />
   );
 }
 
-function Layout({ status, main, devTools }: { status: ReactNode; main?: ReactNode; devTools?: ReactNode }) {
+/** Jogador da aba e ferramentas que dependem dele. */
+function PlayerArea({ api, wsUrl }: { api: ReturnType<typeof createApiClient>; wsUrl: string }) {
+  const { session, login, logout } = usePlayerSession(api);
+  const token = session.status === "authenticated" ? session.token : null;
+  const realtime = useMemo(() => (token ? new RealtimeClient(wsUrl, undefined, token) : null), [wsUrl, token]);
+
+  return (
+    <>
+      <PlayerBar session={session} onLogin={login} onLogout={logout} />
+      <details className="dev-tools">
+        <summary>Ferramentas de desenvolvimento</summary>
+        {realtime ? (
+          <DevRoomPanel key={token} client={realtime} />
+        ) : (
+          <p className="muted">Entre como jogador de teste para usar a sala de teste.</p>
+        )}
+      </details>
+    </>
+  );
+}
+
+function Layout({ status, main }: { status: ReactNode; main?: ReactNode }) {
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -63,13 +90,6 @@ function Layout({ status, main, devTools }: { status: ReactNode; main?: ReactNod
       </header>
 
       {main}
-
-      {devTools && (
-        <details className="dev-tools">
-          <summary>Ferramentas de desenvolvimento</summary>
-          {devTools}
-        </details>
-      )}
     </main>
   );
 }

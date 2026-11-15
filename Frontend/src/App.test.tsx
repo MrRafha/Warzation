@@ -16,20 +16,34 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  sessionStorage.clear();
 });
 
-function mockFetch(implementation: (url: string) => Promise<Response>) {
+function mockFetch(implementation: (url: string, init?: RequestInit) => Promise<Response>) {
   const fetchMock = vi.fn(implementation);
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
 
 /** Backend no ar: responde o health e o cenário do mapa. */
-async function onlineBackend(url: string): Promise<Response> {
+const PLAYER_TOKEN = "token-valido-do-jogador-1";
+
+async function onlineBackend(url: string, init?: RequestInit): Promise<Response> {
   if (url.endsWith("/api/v1/scenarios/nordeste-teste")) {
     return Response.json(scenarioResponseFixture());
   }
+  if (url.endsWith("/api/v1/players/me")) {
+    const auth = (init?.headers as Record<string, string> | undefined)?.Authorization;
+    return auth === `Bearer ${PLAYER_TOKEN}`
+      ? Response.json({ id: "jogador-1", name: "Jogador 1" })
+      : Response.json({ code: "UNAUTHENTICATED", message: "Token de jogador inválido" }, { status: 401 });
+  }
   return Response.json(health);
+}
+
+async function loginAs(token: string) {
+  fireEvent.change(await screen.findByLabelText("Token do jogador de teste"), { target: { value: token } });
+  fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
 }
 
 it("consulta o endpoint de saúde configurado e mostra o Backend conectado", async () => {
@@ -110,12 +124,16 @@ it("avisa quando as variáveis de ambiente não foram configuradas", () => {
 it("mostra o estado oficial da sala de teste e envia comandos pelo WebSocket", async () => {
   mockFetch(onlineBackend);
   render(<App />);
+  expect(await screen.findByText("Entre como jogador de teste para usar a sala de teste.")).toBeInTheDocument();
+
+  await loginAs(PLAYER_TOKEN);
   await screen.findByText("Sala de teste");
 
   const socket = FakeSocket.latest();
   expect(socket.url).toBe("ws://api.test/ws");
   act(() => socket.serverOpen());
-  expect(socket.sent[0]).toMatchObject({ type: "JOIN_ROOM", payload: { roomId: "dev" } });
+  expect(socket.sent[0]).toMatchObject({ type: "AUTHENTICATE", payload: { token: PLAYER_TOKEN } });
+  expect(socket.sent[1]).toMatchObject({ type: "JOIN_ROOM", payload: { roomId: "dev" } });
 
   act(() =>
     socket.serverSend({
@@ -130,6 +148,7 @@ it("mostra o estado oficial da sala de teste e envia comandos pelo WebSocket", a
   fireEvent.click(screen.getByRole("button", { name: "+1" }));
   const command = socket.sent.at(-1);
   expect(command).toMatchObject({ type: "COMMAND", payload: { type: "INCREMENT_COUNTER", payload: { amount: 1 } } });
+  expect(command).not.toHaveProperty("payload.playerId");
 
   // O contador só muda quando o servidor publica o novo estado.
   expect(screen.getByTestId("room-counter")).toHaveTextContent("4");
@@ -143,3 +162,42 @@ it("mostra o estado oficial da sala de teste e envia comandos pelo WebSocket", a
   );
   expect(screen.getByTestId("room-counter")).toHaveTextContent("5");
 });
+
+it("entra como jogador de teste validando o token no servidor", async () => {
+  const fetchMock = mockFetch(onlineBackend);
+  render(<App />);
+
+  await loginAs(PLAYER_TOKEN);
+
+  expect(await screen.findByText("Jogador 1")).toBeInTheDocument();
+  expect(screen.getByText(/Jogando como/)).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledWith(
+    "http://api.test/api/v1/players/me",
+    expect.objectContaining({ headers: expect.objectContaining({ Authorization: `Bearer ${PLAYER_TOKEN}` }) }),
+  );
+  expect(sessionStorage.getItem("warzation.playerToken")).toBe(PLAYER_TOKEN);
+});
+
+it("recusa token que o servidor não reconhece", async () => {
+  mockFetch(onlineBackend);
+  render(<App />);
+
+  await loginAs("token-qualquer-errado");
+
+  expect(await screen.findByText("Token não reconhecido pelo servidor")).toBeInTheDocument();
+  expect(screen.queryByText(/Jogando como/)).not.toBeInTheDocument();
+  expect(sessionStorage.getItem("warzation.playerToken")).toBeNull();
+});
+
+it("mantém o jogador da aba ao recarregar e permite sair", async () => {
+  sessionStorage.setItem("warzation.playerToken", PLAYER_TOKEN);
+  mockFetch(onlineBackend);
+  render(<App />);
+
+  expect(await screen.findByText("Jogador 1")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+  expect(await screen.findByLabelText("Token do jogador de teste")).toBeInTheDocument();
+  expect(sessionStorage.getItem("warzation.playerToken")).toBeNull();
+});
+
