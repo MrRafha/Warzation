@@ -21,3 +21,6 @@ application:
       - id: jogador-2
         name: Jogador 2
         token: token-de-teste-jogador-2
+      - id: jogador-3
+        name: Jogador 3
+        token: token-de-teste-jogador-3

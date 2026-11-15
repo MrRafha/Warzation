@@ -53,6 +53,22 @@ status=$(curl -sS -o /tmp/first.json -w '%{http_code}' -H 'Content-Type: applica
 expect_eq "$status" "201" "primeiro envio aplicado"
 expect_eq "$(jq -r .status /tmp/first.json)" "APPLIED" "status APPLIED"
 expect_eq "$(jq -r .playerId /tmp/first.json)" "jogador-1" "comando registrado com o jogador do token"
+
+post_as() { # token, caminho, corpo -> grava resposta em /tmp/resp.json e imprime o status
+  curl -sS -o /tmp/resp.json -w '%{http_code}' -H 'Content-Type: application/json' \
+    -H "Authorization: Bearer $1" -d "$3" "$API$2"
+}
+expect_eq "$(post_as "$PLAYER_1_TOKEN" /api/v1/matches \
+  "{\"commandId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"scenarioId\":\"nordeste-teste\",\"name\":\"Smoke\"}")" \
+  "201" "partida criada"
+MATCH_ID=$(jq -r .match.id /tmp/resp.json)
+JOIN_ID=$(cat /proc/sys/kernel/random/uuid)
+JOIN_BODY="{\"commandId\":\"$JOIN_ID\",\"nationId\":\"parnaiba\"}"
+expect_eq "$(post_as "$PLAYER_1_TOKEN" "/api/v1/matches/$MATCH_ID/participants" "$JOIN_BODY")" "201" "jogador 1 entrou"
+expect_eq "$(post_as "$PLAYER_2_TOKEN" "/api/v1/matches/$MATCH_ID/participants" \
+  "{\"commandId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"nationId\":\"parnaiba\"}")" "409" "nação ocupada recusada"
+expect_eq "$(post_as "$PLAYER_2_TOKEN" "/api/v1/matches/$MATCH_ID/participants" \
+  "{\"commandId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"nationId\":\"sao-francisco\"}")" "201" "jogador 2 entrou"
 stop_backend
 
 start_backend
@@ -65,6 +81,11 @@ expect_eq "$(jq -r .status /tmp/again.json)" "DUPLICATE" "reenvio marcado como D
 expect_eq "$(curl -fsS "$API/api/v1/rooms/dev" | jq .counter)" "$((before + 3))" "reenvio não duplicou"
 expect_eq "$(curl -fsS "$API/api/v1/rooms/dev/commands/$COMMAND_ID" | jq .resultingCounter)" "$((before + 3))" \
   "resultado do comando consultável"
+expect_eq "$(curl -fsS "$API/api/v1/matches/$MATCH_ID" | jq '.participants | length')" "2" \
+  "participantes da partida persistiram após reinício"
+expect_eq "$(post_as "$PLAYER_1_TOKEN" "/api/v1/matches/$MATCH_ID/participants" "$JOIN_BODY")" "200" \
+  "reenvio da entrada após reinício"
+expect_eq "$(jq -r .status /tmp/resp.json)" "DUPLICATE" "entrada reenviada não duplica o participante"
 expect_eq "$(grep -c 'Cenário nordeste-teste carregado.*UNCHANGED' backend.log)" "1" \
   "recarga do cenário no reinício não regrava o banco"
 stop_backend

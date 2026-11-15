@@ -32,6 +32,9 @@ async function onlineBackend(url: string, init?: RequestInit): Promise<Response>
   if (url.endsWith("/api/v1/scenarios/nordeste-teste")) {
     return Response.json(scenarioResponseFixture());
   }
+  if (url.includes("/api/v1/matches")) {
+    return Response.json([]);
+  }
   if (url.endsWith("/api/v1/players/me")) {
     const auth = (init?.headers as Record<string, string> | undefined)?.Authorization;
     return auth === `Bearer ${PLAYER_TOKEN}`
@@ -203,3 +206,18 @@ it("mantém o jogador da aba ao recarregar e permite sair", async () => {
   expect(sessionStorage.getItem("warzation.playerToken")).toBeNull();
 });
 
+
+it("não apaga o jogador salvo quando o servidor não responde na confirmação", async () => {
+  sessionStorage.setItem("warzation.playerToken", PLAYER_TOKEN);
+  mockFetch(async (url, init) => {
+    if (url.endsWith("/api/v1/players/me")) {
+      throw new TypeError("Failed to fetch");
+    }
+    return onlineBackend(url, init);
+  });
+
+  render(<App />);
+
+  expect(await screen.findByText("Não foi possível confirmar o jogador agora")).toBeInTheDocument();
+  expect(sessionStorage.getItem("warzation.playerToken")).toBe(PLAYER_TOKEN);
+});

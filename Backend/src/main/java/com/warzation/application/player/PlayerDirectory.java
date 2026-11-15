@@ -29,6 +29,7 @@ public class PlayerDirectory {
     private static final String ID_PATTERN = "^[a-z0-9]+(-[a-z0-9]+)*$";
 
     private final Map<String, Player> playersByTokenHash;
+    private final Map<String, Player> playersById;
 
     public PlayerDirectory(PlayersProperties properties) {
         List<String> problems = new ArrayList<>();
@@ -68,6 +69,14 @@ public class PlayerDirectory {
             log.info("{} jogador(es) de teste ativo(s)", byHash.size());
         }
         this.playersByTokenHash = Map.copyOf(byHash);
+        Map<String, Player> byId = new HashMap<>();
+        byHash.values().forEach(player -> byId.put(player.id(), player));
+        this.playersById = Map.copyOf(byId);
+    }
+
+    /** Jogador ativo pelo id, para exibir nomes; nunca serve para autenticar. */
+    public Optional<Player> findById(String id) {
+        return Optional.ofNullable(id == null ? null : playersById.get(id));
     }
 
     public Optional<Player> authenticate(String token) {

@@ -23,13 +23,14 @@ export function usePlayerSession(api: ApiClient) {
         storeToken(token);
         setSession({ status: "authenticated", player, token });
       } catch (error) {
-        clearStoredToken();
+        const rejected = error instanceof ApiError && error.status === 401;
+        // Só um 401 apaga o token salvo; Backend fora do ar não deve deslogar a aba.
+        if (rejected) {
+          clearStoredToken();
+        }
         setSession({
           status: "anonymous",
-          error:
-            error instanceof ApiError && error.status === 401
-              ? "Token não reconhecido pelo servidor"
-              : "Não foi possível confirmar o jogador agora",
+          error: rejected ? "Token não reconhecido pelo servidor" : "Não foi possível confirmar o jogador agora",
         });
       }
     },

@@ -4,6 +4,7 @@ import com.warzation.application.CommandConflictException;
 import com.warzation.application.InvalidCommandException;
 import com.warzation.application.ResourceNotFoundException;
 import com.warzation.application.map.NoRouteException;
+import com.warzation.application.match.MatchRuleException;
 import com.warzation.application.player.UnauthenticatedException;
 import org.springframework.http.HttpHeaders;
 import jakarta.servlet.http.HttpServletRequest;
@@ -80,6 +81,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .header(HttpHeaders.WWW_AUTHENTICATE, "Bearer")
                 .body(body);
+    }
+
+    @ExceptionHandler(MatchRuleException.class)
+    public ResponseEntity<ApiErrorResponse> handleMatchRule(MatchRuleException exception, HttpServletRequest request) {
+        return response(HttpStatus.CONFLICT, exception.getReason().name(), exception.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(NoRouteException.class)

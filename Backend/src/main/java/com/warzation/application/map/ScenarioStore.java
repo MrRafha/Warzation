@@ -38,6 +38,13 @@ public class ScenarioStore {
         }
         boolean existed = !hashes.isEmpty();
         if (existed) {
+            Integer usedBy = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM matches WHERE scenario_id = ?", Integer.class, file.id());
+            if (usedBy != null && usedBy > 0) {
+                throw new ScenarioValidationException("data/scenarios/" + file.id(), List.of(
+                        "o conteúdo do cenário mudou, mas ele já é usado por " + usedBy + " partida(s); "
+                                + "publique as mudanças com um novo id de cenário"));
+            }
             jdbc.update("DELETE FROM scenarios WHERE id = ?", file.id());
         }
 

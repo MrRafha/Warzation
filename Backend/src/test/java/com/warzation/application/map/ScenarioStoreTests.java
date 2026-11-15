@@ -11,7 +11,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
+/** Banco próprio: partidas criadas por outros testes impediriam substituir o cenário. */
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:scenario-store;MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
 @ActiveProfiles("test")
 class ScenarioStoreTests {
 
