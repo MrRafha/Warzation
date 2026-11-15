@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { MapScreen } from "./MapScreen";
-import { loadBundledScenario } from "./scenario";
+import { loadFixtureScenario } from "../../test/scenarioFixture";
 
 async function renderMap() {
-  const view = render(<MapScreen loadScenario={loadBundledScenario} />);
+  const view = render(<MapScreen loadScenario={loadFixtureScenario} />);
   await screen.findByRole("group", { name: /Mapa/ });
   return view;
 }

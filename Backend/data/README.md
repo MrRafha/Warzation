@@ -20,7 +20,9 @@ pip install -r tools/mapdata/requirements.txt
 python tools/mapdata/validate_scenario.py Backend/data/scenarios/nordeste-teste
 ```
 
-O CI roda essa validação em todo PR.
+O CI roda essa validação em todo PR. O Backend também valida os cenários no
+startup e não sobe se algum for inválido; a validação geométrica fina
+(fronteiras batendo com a geometria) fica só no script Python.
 
 ### Formato de `scenario.json` (versão 1)
 

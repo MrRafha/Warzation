@@ -124,6 +124,11 @@ Todas as rotas da aplicação ficam sob `/api/v1`. O corpo é sempre JSON.
 | `GET /api/v1/rooms/{roomId}` | Estado oficial de uma sala de teste. | `200` |
 | `POST /api/v1/rooms/{roomId}/commands` | Envia um comando para a sala. | `201` aplicado, `200` reenvio |
 | `GET /api/v1/rooms/{roomId}/commands/{commandId}` | Consulta o resultado de um comando. | `200` |
+| `GET /api/v1/scenarios` | Lista os cenários carregados. | `200` |
+| `GET /api/v1/scenarios/{id}` | Cenário completo: `scenario` (conteúdo de `scenario.json`), `buildingSlots` e `geometry` (GeoJSON). Envia `ETag`; com `If-None-Match` igual responde `304`. | `200` |
+| `GET /api/v1/scenarios/{id}/provinces/{provinceId}/neighbours` | Vizinhos de uma província. | `200` |
+| `GET /api/v1/scenarios/{id}/adjacency?from=&to=` | Se duas províncias fazem fronteira. | `200` com `adjacent` |
+| `GET /api/v1/scenarios/{id}/routes?from=&to=` | Menor rota terrestre, em número de fronteiras. | `200` com `provinces` e `borders` |
 
 Erros seguem sempre o mesmo formato e nunca expõem stack traces:
 
@@ -143,12 +148,35 @@ Erros seguem sempre o mesmo formato e nunca expõem stack traces:
 | 400 | `VALIDATION_ERROR`, `INVALID_COMMAND`, `MALFORMED_REQUEST` | Dados inválidos ou JSON ilegível. `fields` detalha cada campo. |
 | 404 | `NOT_FOUND` | Rota, sala, comando ou chave inexistente. |
 | 405 | `METHOD_NOT_ALLOWED` | Método HTTP não suportado na rota. |
+| 422 | `NO_ROUTE` | Não existe rota terrestre entre as províncias pedidas. |
 | 409 | `COMMAND_CONFLICT`, `CONFLICT` | `commandId` reutilizado com outra intenção ou conflito de gravação. |
 | 500 | `INTERNAL_ERROR` | Erro inesperado; o detalhe fica só no log do servidor. |
 
 O CORS libera apenas as origens de `CORS_ALLOWED_ORIGINS` (padrão
 `http://localhost:5173`), nos métodos `GET` e `POST`. Coringas (`*`) são
 recusados no startup.
+
+## Cenários (mapa)
+
+No startup, `ScenarioCatalog` lê todos os `data/scenarios/*/scenario.json` do
+classpath (o Maven copia `Backend/data` para dentro do jar), valida cada um e
+grava a definição nas tabelas `scenario_*` (migration `V3`).
+
+- **Validação:** campos desconhecidos (inclusive `buildings` e `roads`), ids
+  repetidos, conexões inválidas, grafo desconexo, estados com menos de 2 ou mais
+  de 3 províncias, regras de nação e falta de geometria. Um cenário inválido
+  **impede o startup**, com a lista de problemas e o arquivo de origem.
+- **Idempotência:** o cenário é gravado com o hash SHA-256 do seu conteúdo. Se
+  o hash não mudou, o banco não é tocado. Se mudou, a definição é substituída.
+- **Espaços de construção:** são regra do jogo (`BuildingSlots`: 3 por
+  província, 4 nas capitais), calculados pelo servidor e gravados junto da província.
+- **Geometria:** não vai para o banco, porque é apresentação. A API serve a
+  geometria a partir do arquivo.
+- **Consultas:** `ProvinceGraph` responde vizinhos, adjacência e menor rota.
+  É a base para movimento e abastecimento.
+
+Quando partidas passarem a referenciar províncias (#18), substituir um cenário
+usado por partidas exigirá um novo `id` de cenário.
 
 ## Comandos e idempotência
 
