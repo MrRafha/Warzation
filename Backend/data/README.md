@@ -178,3 +178,32 @@ python tools/mapdata/build_geometry.py /tmp/mun/geojson /tmp/states/geojson/br_s
 O gerador grava `provinces.geojson`, `municipalities.json` e um `derived.json`
 com costa e conexões calculadas, que devem ser copiadas para o
 `scenario.json`. O `derived.json` é descartável e não fica no repositório.
+
+## Regras de economia e construções
+
+`rules/game-rules.json` guarda os números da economia e das construções. Os
+valores são **provisórios para teste** (aprovados na issue #30) e mudam sem
+alterar código. O Backend lê e valida o arquivo no startup: qualquer problema
+impede a subida e é listado no log.
+
+| Campo | Significado |
+|---|---|
+| `economy.cycleMinutes` | Duração do ciclo econômico (60 = produção horária). |
+| `economy.maxCatchUpCycles` | Quantos ciclos perdidos o servidor recupera depois de ficar desligado. |
+| `economy.foodDemandPerProvince` | Comida consumida por ciclo em cada província com dono. |
+| `economy.baseFoodCapacity` | Capacidade de comida de uma província sem Celeiro. |
+| `economy.cancelRefundPercent` | Parte do custo devolvida ao cancelar uma obra. |
+| `economy.abundanceMultipliers` | Multiplicador da extração por abundância do depósito (`BAIXA`, `MEDIA`, `ALTA`). |
+| `buildings[].cost` | Recursos debitados da própria província ao iniciar a obra. |
+| `buildings[].buildMinutes` | Tempo da obra; no máximo 1440 (24 h). |
+| `buildings[].requiredTechnology` | Tecnologia exigida. Até a Fase 3, as da Era Antiga ficam liberadas. |
+| `buildings[].production` | Produção por ciclo sem depósito, com `terrainMultipliers` por terreno (1 quando o terreno não aparece). |
+| `buildings[].extraction` | Extração por ciclo que exige depósito de um dos `resources` na província. |
+| `buildings[].foodCapacityBonus` | Capacidade de comida somada à província. |
+
+Construções sem `production`, `extraction` nem `foodCapacityBonus`
+(Acampamento, Biblioteca) só ocupam o espaço até as fases que lhes dão efeito.
+
+Para testar a economia sem esperar horas, suba o Backend com `GAME_SPEED`
+(ex.: `GAME_SPEED=60`): o ciclo e as obras ficam 60 vezes mais rápidos.
+

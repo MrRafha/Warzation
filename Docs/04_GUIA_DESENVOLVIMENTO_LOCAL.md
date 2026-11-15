@@ -101,6 +101,10 @@ Copy-Item Frontend\.env.example Frontend\.env
 avisa qual variável falta. Ajuste os valores somente se as portas locais forem
 alteradas. O arquivo `.env` também é ignorado pelo Git.
 
+Para testar a economia sem esperar horas, defina `GAME_SPEED` antes de subir o
+Backend (ex.: `$env:GAME_SPEED = "60"` no PowerShell): o ciclo de 1 h passa a
+durar 1 minuto e as obras ficam 60 vezes mais rápidas. O padrão é 1.
+
 Se o Frontend rodar em outra origem (outra porta ou `127.0.0.1`), libere-a no
 Backend com a variável `CORS_ALLOWED_ORIGINS`, separando várias origens por
 vírgula. Coringas (`*`) não são aceitos.

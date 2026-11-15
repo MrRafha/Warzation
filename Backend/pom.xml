@@ -82,7 +82,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            <!-- Empacota os cenários de Backend/data no classpath (data/scenarios/...). -->
+            <!-- Empacota cenários e regras de Backend/data no classpath (data/...). -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -101,6 +101,7 @@
                                     <includes>
                                         <include>scenarios/*/scenario.json</include>
                                         <include>scenarios/*/*.geojson</include>
+                                        <include>rules/*.json</include>
                                     </includes>
                                 </resource>
                             </resources>

@@ -1,0 +1,77 @@
+{
+  "formatVersion": 1,
+  "provisional": true,
+  "economy": {
+    "cycleMinutes": 60,
+    "maxCatchUpCycles": 24,
+    "foodDemandPerProvince": 2,
+    "baseFoodCapacity": 200,
+    "cancelRefundPercent": 50,
+    "abundanceMultipliers": { "BAIXA": 0.5, "MEDIA": 1.0, "ALTA": 1.5 }
+  },
+  "buildings": [
+    {
+      "id": "FAZENDA",
+      "name": "Fazenda",
+      "era": "ANTIGA",
+      "requiredTechnology": "agricultura",
+      "cost": { "PEDRA": 20 },
+      "buildMinutes": 120,
+      "production": {
+        "resource": "COMIDA",
+        "perCycle": 10,
+        "terrainMultipliers": { "PLANICIE_FERTIL": 1.5, "CAATINGA": 0.75, "FLORESTA": 0.75 }
+      }
+    },
+    {
+      "id": "CURRAL",
+      "name": "Curral",
+      "era": "ANTIGA",
+      "requiredTechnology": "domesticacao",
+      "cost": { "PEDRA": 20 },
+      "buildMinutes": 120,
+      "production": {
+        "resource": "COMIDA",
+        "perCycle": 6,
+        "terrainMultipliers": { "PASTAGEM": 1.5 }
+      }
+    },
+    {
+      "id": "CELEIRO",
+      "name": "Celeiro",
+      "era": "ANTIGA",
+      "requiredTechnology": "armazenamento",
+      "cost": { "PEDRA": 30 },
+      "buildMinutes": 180,
+      "foodCapacityBonus": 300
+    },
+    {
+      "id": "MINA",
+      "name": "Mina",
+      "era": "ANTIGA",
+      "requiredTechnology": "mineracao",
+      "cost": { "PEDRA": 30 },
+      "buildMinutes": 240,
+      "extraction": {
+        "resources": ["PEDRA"],
+        "perCycle": 6
+      }
+    },
+    {
+      "id": "ACAMPAMENTO",
+      "name": "Acampamento",
+      "era": "ANTIGA",
+      "requiredTechnology": "organizacao-militar",
+      "cost": { "PEDRA": 40 },
+      "buildMinutes": 240
+    },
+    {
+      "id": "BIBLIOTECA",
+      "name": "Biblioteca",
+      "era": "ANTIGA",
+      "requiredTechnology": "escrita",
+      "cost": { "PEDRA": 50 },
+      "buildMinutes": 360
+    }
+  ]
+}

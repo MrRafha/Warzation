@@ -132,6 +132,7 @@ Todas as rotas da aplicação ficam sob `/api/v1`. O corpo é sempre JSON.
 | `POST /api/v1/matches/{id}/start` | Inicia a partida e aplica a posição inicial: `{ commandId }` (só quem criou). | `201` iniciou, `200` reenvio |
 | `GET /api/v1/matches/{id}/state` | Estado territorial: dono, unidades e estoque de cada província (só participantes). | `200` |
 | `GET /api/v1/matches/{id}/events` | Histórico em ordem (participantes e quem criou). | `200` |
+| `GET /api/v1/rules` | Regras de economia e construções em vigor (custos, tempos em segundos já com `GAME_SPEED` aplicado, produção). | `200` |
 | `GET /api/v1/scenarios` | Lista os cenários carregados. | `200` |
 | `GET /api/v1/scenarios/{id}` | Cenário completo: `scenario` (conteúdo de `scenario.json`), `buildingSlots` e `geometry` (GeoJSON). Envia `ETag`; com `If-None-Match` igual responde `304`. | `200` |
 | `GET /api/v1/scenarios/{id}/provinces/{provinceId}/neighbours` | Vizinhos de uma província. | `200` |
