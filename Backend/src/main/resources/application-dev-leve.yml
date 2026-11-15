@@ -1,0 +1,29 @@
+# Perfil para máquinas com pouca memória. Combine com o perfil que tem a
+# conexão do banco: --spring.profiles.active=local,dev-leve
+# A JVM é limitada pelos scripts em Backend/scripts (dev-leve.ps1 / dev-leve.sh).
+spring:
+  main:
+    # Cria componentes só quando usados. ScenarioCatalog e PlayerDirectory
+    # continuam no startup (@Lazy(false)) para validar cenário e jogadores.
+    lazy-initialization: true
+  datasource:
+    hikari:
+      # Poucas conexões e nenhuma ociosa: economiza memória e deixa um banco
+      # serverless (Neon) pausar quando ninguém está usando.
+      maximum-pool-size: 3
+      minimum-idle: 0
+      idle-timeout: 60000
+      max-lifetime: 300000
+      # O Neon leva alguns centésimos de segundo para acordar após pausar.
+      connection-timeout: 30000
+  jpa:
+    properties:
+      hibernate:
+        query:
+          plan_cache_max_size: 256
+
+server:
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 2

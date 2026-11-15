@@ -13,6 +13,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
  * cenário for inválido, a aplicação não sobe.
  */
 @Component
+@Lazy(false) // valida no startup mesmo com spring.main.lazy-initialization
 public class ScenarioCatalog implements InitializingBean {
 
     private static final Logger log = LoggerFactory.getLogger(ScenarioCatalog.class);

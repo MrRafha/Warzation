@@ -4,11 +4,12 @@
 set -euo pipefail
 
 API=http://localhost:8080
+APP_ARGS=()
 JAR=$(ls Backend/target/*.jar | grep -v plain | head -1)
 PID=""
 
-start_backend() {
-  java -jar "$JAR" >> backend.log 2>&1 &
+start_backend() { # argumentos extras vão para a JVM/aplicação (ex.: perfil dev-leve)
+  java "$@" -jar "$JAR" "${APP_ARGS[@]}" >> backend.log 2>&1 &
   PID=$!
   for _ in $(seq 1 60); do
     if curl -fsS "$API/api/v1/health" > /dev/null 2>&1; then
@@ -73,7 +74,9 @@ expect_eq "$(post_as "$PLAYER_1_TOKEN" "/api/v1/matches/$MATCH_ID/start" \
   "{\"commandId\":\"$(cat /proc/sys/kernel/random/uuid)\"}")" "201" "partida iniciada com a posição inicial"
 stop_backend
 
-start_backend
+# Segunda subida com o perfil dev-leve e a JVM limitada, como no script local.
+APP_ARGS=(--spring.profiles.active=dev-leve)
+start_backend -Xmx384m -Xss512k -XX:+UseSerialGC -XX:TieredStopAtLevel=1
 after=$(curl -fsS "$API/api/v1/rooms/dev" | jq .counter)
 expect_eq "$after" "$((before + 3))" "contador persistiu após reinício"
 status=$(curl -sS -o /tmp/again.json -w '%{http_code}' -H 'Content-Type: application/json' \

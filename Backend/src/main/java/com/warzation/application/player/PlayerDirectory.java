@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
  * e nunca são registrados em log.
  */
 @Component
+@Lazy(false) // valida no startup mesmo com spring.main.lazy-initialization
 public class PlayerDirectory {
 
     public static final int MIN_TOKEN_LENGTH = 16;

@@ -344,10 +344,16 @@ serve apenas para saber quem recebe as atualizações.
 
 ## Ambiente local
 
-O projeto será executado localmente, sem Docker. A instalação de Java 21,
-Node.js, npm e PostgreSQL faz parte da configuração de desenvolvimento. As
-variáveis de conexão e demais configurações locais não devem ser commitadas;
-um arquivo de exemplo deverá documentar os nomes esperados.
+O projeto roda localmente, sem Docker, com Java 21, Node.js e npm. O banco
+pode ser um PostgreSQL local ou um PostgreSQL gerenciado (Neon, com a conexão
+direta e `sslmode=require`): o Backend só depende de `DB_URL`, `DB_USERNAME` e
+`DB_PASSWORD`. As configurações locais não são commitadas; os nomes esperados
+estão em `application-local.example.yml`.
+
+Para máquinas com pouca memória, o perfil `dev-leve` e os scripts em
+`Backend/scripts` rodam uma única JVM limitada, com inicialização preguiçosa e
+pool de conexões pequeno. O passo a passo está em
+`04_GUIA_DESENVOLVIMENTO_LOCAL.md`.
 
 ## Organização inicial
 

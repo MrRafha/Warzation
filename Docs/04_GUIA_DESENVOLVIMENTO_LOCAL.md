@@ -35,6 +35,40 @@ CREATE DATABASE warzation OWNER warzation_dev;
 Não reutilize senhas de produção nem publique a senha em arquivos rastreados.
 O serviço do PostgreSQL deve estar iniciado antes do Backend.
 
+## Alternativa: banco no Neon
+
+Para não rodar o PostgreSQL na sua máquina, use um banco gratuito no
+[Neon](https://neon.com). É PostgreSQL normal: o Backend, o Flyway e as
+migrations funcionam sem mudança, só a conexão é diferente.
+
+1. Crie um projeto no Neon na região **AWS South America (São Paulo)**
+   (`aws-sa-east-1`). A região não muda depois de criada.
+2. Em **Connect**, escolha a conexão **direta**: o host **sem** `-pooler` no
+   nome. A conexão com pooler usa PgBouncer em modo transação, que não combina
+   bem com o driver JDBC e com o Flyway.
+3. Monte a URL JDBC a partir do host e do banco mostrados pelo Neon:
+
+   ```text
+   jdbc:postgresql://ep-exemplo-123456.sa-east-1.aws.neon.tech/neondb?sslmode=require
+   ```
+
+4. Coloque URL, usuário e senha no `application-local.yml` (próxima seção) ou
+   nas variáveis `DB_URL`, `DB_USERNAME` e `DB_PASSWORD`. Nunca versione a senha.
+
+Coisas para saber do plano gratuito:
+
+- O banco **pausa após 5 minutos sem uso**. A primeira consulta depois disso
+  o acorda em alguns centésimos de segundo, então a primeira requisição fica um
+  pouco mais lenta.
+- Há limite mensal de compute e de armazenamento (1 GB por projeto). Com o perfil
+  `dev-leve`, o Backend não segura conexões ociosas e o banco pode pausar
+  enquanto você não está usando.
+- Para testar algo sem bagunçar seus dados, crie um **branch** do banco no
+  Neon e aponte a URL para ele.
+
+Os testes automatizados não usam o Neon: rodam com H2, e o CI tem o próprio
+PostgreSQL.
+
 ## Configuração local
 
 ### Backend
@@ -52,8 +86,8 @@ Copy-Item Backend\src\main\resources\application-local.example.yml `
   Backend\src\main\resources\application-local.yml
 ```
 
-Edite `application-local.yml` com o usuário e a senha do PostgreSQL local.
-Esse arquivo é ignorado pelo Git.
+Edite `application-local.yml` com a conexão do banco (PostgreSQL local ou
+Neon) e os tokens dos jogadores de teste. Esse arquivo é ignorado pelo Git.
 
 ### Frontend
 
@@ -83,6 +117,38 @@ Set-Location Frontend
 npm install
 npm run dev
 ```
+
+### Modo leve (pouca memória)
+
+O `mvn spring-boot:run` mantém duas JVMs abertas (o Maven e o Backend). Em
+máquinas mais modestas, use o script do perfil `dev-leve`, que compila uma vez
+e roda só o Backend, com memória limitada:
+
+```powershell
+# Backend (Windows)
+.\Backend\scripts\dev-leve.ps1              # compila e sobe
+.\Backend\scripts\dev-leve.ps1 -SkipBuild   # sobe o jar já compilado
+.\Backend\scripts\dev-leve.ps1 -MaxMemory 512m
+```
+
+```bash
+# Backend (Linux/macOS)
+Backend/scripts/dev-leve.sh [--skip-build] [--max-memory 512m]
+```
+
+O script ativa os perfis `local,dev-leve`, então usa a conexão do
+`application-local.yml`. O que muda no modo leve:
+
+| Ajuste | Efeito |
+|---|---|
+| `-Xmx384m`, `-XX:+UseSerialGC` | heap limitada e coletor de lixo mais leve |
+| `-XX:TieredStopAtLevel=1` | menos CPU e memória para compilação JIT; sobe mais rápido |
+| `spring.main.lazy-initialization` | cria componentes só quando usados; cenário e jogadores continuam validados no startup |
+| pool de até 3 conexões, nenhuma ociosa | menos memória e banco serverless livre para pausar |
+| até 20 threads no Tomcat | suficiente para desenvolvimento |
+
+Se aparecer `OutOfMemoryError`, aumente com `-MaxMemory 512m`. O CI sobe o
+Backend com essas mesmas opções no smoke com PostgreSQL.
 
 O Backend aplica as migrations Flyway ao iniciar. Se o PostgreSQL estiver
 parado, o banco não existir ou as credenciais estiverem incorretas, o startup
