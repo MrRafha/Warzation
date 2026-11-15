@@ -524,7 +524,7 @@ Stack, módulos de domínio, modelo de dados e regras de segurança estão em `0
 
 ## 12. Escopo de produto
 
-O projeto tem dois marcos: o **protótipo técnico** (8–12 províncias, dois jogadores, recorte Antigo/Medieval) e o **MVP jogável** (Américas, 50–60 províncias, 3–6 jogadores, quatro eras). Escopo detalhado, itens fora do MVP e critérios de saída estão em `02_DIRECAO_DE_DESENVOLVIMENTO.md`, seções 2 e 3.
+O projeto tem dois marcos: o **protótipo técnico** (Nordeste com 24 províncias, dois jogadores, recorte Antigo/Medieval) e o **MVP jogável** (Américas, 50–60 províncias, 3–6 jogadores, quatro eras). Escopo detalhado, itens fora do MVP e critérios de saída estão em `02_DIRECAO_DE_DESENVOLVIMENTO.md`, seções 2 e 3.
 
 ---
 

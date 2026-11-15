@@ -105,7 +105,7 @@ Provar que o servidor consegue manter um mundo persistente e que economia, tecno
 
 ### 3.2 Escopo mínimo
 
-- mapa de teste com aproximadamente 8–12 províncias;
+- mapa de teste do Nordeste com 24 províncias: cada estado dividido em 2–3 regiões nomeadas por suas principais cidades, para que a disputa por um estado seja tática;
 - dois jogadores de teste;
 - recorte funcional das Eras Antiga e Medieval;
 - dados de terreno, depósitos e adjacências;
@@ -152,7 +152,7 @@ As fases abaixo representam entregas verificáveis. A equipe pode trabalhar em p
 ### Fase 0 — Especificação e mapa de teste
 
 **Entregas:**
-- mapa de teste com 8–12 províncias;
+- mapa de teste do Nordeste com 24 províncias (`Backend/data/scenarios/nordeste-teste`);
 - cidades, terrenos, depósitos e adjacências;
 - modelo inicial de província e nação;
 - protótipo visual para selecionar uma província;

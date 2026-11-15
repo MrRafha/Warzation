@@ -5,7 +5,8 @@ Uso: python tools/mapdata/validate_scenario.py Backend/data/scenarios/<cenario>
 Confere:
 - referências internas (terrenos, províncias, nações) e recursos conhecidos;
 - adjacências sem duplicatas, sem laços e entre províncias existentes;
-- grafo conexo e com 8 a 12 províncias no protótipo;
+- grafo conexo e com 8 a 30 províncias no protótipo;
+- estados existentes e divididos em 2 ou 3 províncias;
 - nações com capital entre as províncias iniciais, três províncias contíguas e
   sem sobreposição entre nações;
 - ausência de construções ou estradas nos dados;
@@ -24,6 +25,8 @@ RESOURCES = {"PEDRA", "METAL", "PETROLEO"}
 ABUNDANCES = {"BAIXA", "MEDIA", "ALTA"}
 FORBIDDEN_KEYS = {"buildings", "construcoes", "roads", "estradas"}
 BORDER_TOLERANCE_DEG = 0.002
+MIN_PROVINCES, MAX_PROVINCES = 8, 30
+MIN_PER_STATE, MAX_PER_STATE = 2, 3
 
 errors: list[str] = []
 
@@ -71,8 +74,20 @@ def main(directory: Path) -> int:
 
     if len(ids) != len(id_set):
         fail("identificadores de província duplicados")
-    if not 8 <= len(id_set) <= 12:
-        fail(f"o protótipo precisa de 8 a 12 províncias; há {len(id_set)}")
+    if not MIN_PROVINCES <= len(id_set) <= MAX_PROVINCES:
+        fail(f"o protótipo precisa de {MIN_PROVINCES} a {MAX_PROVINCES} províncias; há {len(id_set)}")
+
+    states = {s["id"] for s in scenario.get("states", [])}
+    per_state: dict[str, int] = {}
+    for p in provinces:
+        if p.get("state") not in states:
+            fail(f"província {p['id']}: estado desconhecido {p.get('state')}")
+        else:
+            per_state[p["state"]] = per_state.get(p["state"], 0) + 1
+    for state in sorted(states):
+        count = per_state.get(state, 0)
+        if not MIN_PER_STATE <= count <= MAX_PER_STATE:
+            fail(f"estado {state}: precisa de {MIN_PER_STATE} a {MAX_PER_STATE} províncias; há {count}")
 
     for p in provinces:
         where = f"província {p['id']}"
@@ -98,9 +113,11 @@ def main(directory: Path) -> int:
         if a == b:
             fail(f"conexão de {a} com ela mesma")
             continue
-        for node in (a, b):
-            if node not in id_set:
-                fail(f"conexão cita província inexistente {node}")
+        missing = [node for node in (a, b) if node not in id_set]
+        for node in missing:
+            fail(f"conexão cita província inexistente {node}")
+        if missing:
+            continue
         edge = frozenset((a, b))
         if edge in edges:
             fail(f"conexão duplicada {a} - {b}")
@@ -134,6 +151,8 @@ def main(directory: Path) -> int:
         if pid in shapes:
             fail(f"geometria duplicada para {pid}")
         geom = shape(feature["geometry"])
+        if geom.geom_type not in ("Polygon", "MultiPolygon"):
+            fail(f"geometria de {pid} precisa ser Polygon ou MultiPolygon")
         if not geom.is_valid:
             fail(f"geometria inválida para {pid}")
         shapes[pid] = geom
@@ -159,7 +178,8 @@ def main(directory: Path) -> int:
         for message in errors:
             print(f"  - {message}")
         return 1
-    print(f"{directory}: ok ({len(id_set)} províncias, {len(edges)} conexões, {len(scenario['nations'])} nações)")
+    print(f"{directory}: ok ({len(id_set)} províncias em {len(states)} estados, {len(edges)} conexões, "
+          f"{len(scenario['nations'])} nações)")
     return 0
 
 

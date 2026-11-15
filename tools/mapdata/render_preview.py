@@ -13,6 +13,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from shapely.geometry import shape
+from shapely.ops import unary_union
 
 PALETTE = ["#3f8f73", "#c78a3b", "#5b7fc7", "#b0566a", "#8a6fc2", "#6b9e3a"]
 NEUTRAL = "#4a5560"
@@ -27,21 +28,31 @@ capitals = {n["capital"] for n in scenario["nations"]}
 provinces = {p["id"]: p for p in scenario["provinces"]}
 shapes = {f["properties"]["id"]: shape(f["geometry"]) for f in geometry["features"]}
 
-fig, ax = plt.subplots(figsize=(8, 9), dpi=110)
+fig, ax = plt.subplots(figsize=(10, 11), dpi=110)
 fig.patch.set_facecolor("#101820")
 ax.set_facecolor("#101820")
+def parts(geom):
+    return list(getattr(geom, "geoms", [geom]))
+
+
 for pid, geom in shapes.items():
-    x, y = geom.exterior.xy
-    ax.fill(x, y, color=colors.get(owner.get(pid), NEUTRAL), alpha=0.9, ec="#eef4f1", lw=0.8)
+    for part in parts(geom):
+        x, y = part.exterior.xy
+        ax.fill(x, y, color=colors.get(owner.get(pid), NEUTRAL), alpha=0.9, ec="#eef4f1", lw=0.4)
+for state in {p["state"] for p in scenario["provinces"]}:
+    merged = unary_union([shapes[p["id"]].buffer(0.003) for p in scenario["provinces"] if p["state"] == state])
+    for part in parts(merged):
+        x, y = part.exterior.xy
+        ax.plot(x, y, color="#eef4f1", lw=1.6)
 for a, b in scenario["connections"]:
     pa, pb = shapes[a].representative_point(), shapes[b].representative_point()
-    ax.plot([pa.x, pb.x], [pa.y, pb.y], color="#eef4f1", lw=0.7, ls=":", alpha=0.6)
-for pid, geom in shapes.items():
-    point = geom.representative_point()
-    label = provinces[pid]["name"] + (" ★" if pid in capitals else "")
-    ax.text(point.x, point.y, label, color="white", ha="center", va="center", fontsize=8, weight="bold")
+    ax.plot([pa.x, pb.x], [pa.y, pb.y], color="#eef4f1", lw=0.5, ls=":", alpha=0.45)
+for pid in shapes:
     city = provinces[pid]["mainCity"]
+    label = provinces[pid]["name"] + (" ★" if pid in capitals else "")
     ax.plot(city["lon"], city["lat"], "o", color="white", ms=3)
+    ax.text(city["lon"], city["lat"] + 0.1, label, color="white", ha="center", va="bottom", fontsize=7,
+            weight="bold", bbox={"facecolor": "#101820", "alpha": 0.55, "pad": 1, "lw": 0})
 
 legend = [Patch(color=colors[n["id"]], label=n["name"]) for n in scenario["nations"]]
 legend.append(Patch(color=NEUTRAL, label="Neutra"))

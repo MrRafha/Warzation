@@ -45,3 +45,6 @@ __pycache__/
 *.temp
 *.swp
 *~
+
+# Saída temporária do gerador de mapa
+Backend/data/scenarios/*/derived.json
