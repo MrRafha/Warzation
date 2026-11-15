@@ -127,9 +127,11 @@ Todo push na `main` e todo pull request rodam `.github/workflows/ci.yml`:
 - **Backend (smoke com PostgreSQL):** sobe a aplicação contra um PostgreSQL 16,
   aplica um comando, reinicia e confere persistência e idempotência
   (`.github/scripts/postgres-smoke.sh`);
+- **Dados do mapa:** valida os cenários de `Backend/data/scenarios`
+  (`tools/mapdata/validate_scenario.py`);
 - **Frontend (testes e build):** `npm ci`, `npm test` e `npm run build`.
 
-Um PR só deve ser mergeado com os três jobs verdes.
+Um PR só deve ser mergeado com todos os jobs verdes.
 
 ## Contratos da API e do WebSocket
 

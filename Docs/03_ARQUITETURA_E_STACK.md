@@ -235,7 +235,8 @@ um arquivo de exemplo deverá documentar os nomes esperados.
 
 - `Backend/`: aplicação Spring Boot, domínio, persistência e WebSocket.
 - `Frontend/`: aplicação React/Vite, componentes, telas e cliente WebSocket.
-- `Backend/data/`: dados configuráveis do mapa e regras do jogo.
+- `Backend/data/`: dados configuráveis do mapa e regras do jogo; formato e fontes em `Backend/data/README.md`.
+- `tools/mapdata/`: scripts para gerar e validar os dados do mapa.
 - `Docs/`: regras do jogo, direção de desenvolvimento, arquitetura e guia local.
 
 O Maven deve estar instalado localmente e disponível no `PATH`. Os comandos

@@ -83,6 +83,27 @@ jobs:
         if: always()
         run: cat backend.log 2>/dev/null || true
 
+  map-data:
+    name: Dados do mapa
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/mapdata/requirements.txt
+
+      - run: pip install -r tools/mapdata/requirements.txt
+
+      - name: Validar cenários
+        run: |
+          for scenario in Backend/data/scenarios/*/; do
+            python tools/mapdata/validate_scenario.py "$scenario"
+          done
+
   frontend:
     name: Frontend (testes e build)
     runs-on: ubuntu-latest

@@ -1,0 +1,130 @@
+{
+  "formatVersion": 1,
+  "id": "nordeste-teste",
+  "name": "Nordeste (mapa de teste do protótipo)",
+  "provisional": true,
+  "geometryFile": "provinces.geojson",
+  "terrains": [
+    { "id": "PLANICIE_FERTIL", "name": "Planície fértil", "description": "Favorece Fazendas e a produção de comida." },
+    { "id": "PASTAGEM", "name": "Pastagem", "description": "Favorece Currais e a criação de animais." },
+    { "id": "CERRADO", "name": "Cerrado", "description": "Terreno equilibrado, sem bônus agrícola forte." },
+    { "id": "CAATINGA", "name": "Caatinga", "description": "Semiárido; produção agrícola mais difícil." }
+  ],
+  "provinces": [
+    {
+      "id": "maranhao",
+      "name": "Maranhão",
+      "mainCity": { "name": "São Luís", "lon": -44.3028, "lat": -2.5297 },
+      "terrain": "PLANICIE_FERTIL",
+      "coastal": true,
+      "deposits": [{ "resource": "PETROLEO", "abundance": "BAIXA" }]
+    },
+    {
+      "id": "piaui",
+      "name": "Piauí",
+      "mainCity": { "name": "Teresina", "lon": -42.8019, "lat": -5.0892 },
+      "terrain": "CERRADO",
+      "coastal": true,
+      "deposits": [
+        { "resource": "PEDRA", "abundance": "ALTA" },
+        { "resource": "METAL", "abundance": "MEDIA" }
+      ]
+    },
+    {
+      "id": "ceara",
+      "name": "Ceará",
+      "mainCity": { "name": "Fortaleza", "lon": -38.5434, "lat": -3.7172 },
+      "terrain": "CAATINGA",
+      "coastal": true,
+      "deposits": [{ "resource": "PEDRA", "abundance": "ALTA" }]
+    },
+    {
+      "id": "rio-grande-do-norte",
+      "name": "Rio Grande do Norte",
+      "mainCity": { "name": "Natal", "lon": -35.2094, "lat": -5.7945 },
+      "terrain": "CAATINGA",
+      "coastal": true,
+      "deposits": [
+        { "resource": "PETROLEO", "abundance": "ALTA" },
+        { "resource": "METAL", "abundance": "MEDIA" }
+      ]
+    },
+    {
+      "id": "paraiba",
+      "name": "Paraíba",
+      "mainCity": { "name": "João Pessoa", "lon": -34.8631, "lat": -7.1195 },
+      "terrain": "CAATINGA",
+      "coastal": true,
+      "deposits": [
+        { "resource": "PEDRA", "abundance": "MEDIA" },
+        { "resource": "METAL", "abundance": "BAIXA" }
+      ]
+    },
+    {
+      "id": "pernambuco",
+      "name": "Pernambuco",
+      "mainCity": { "name": "Recife", "lon": -34.8811, "lat": -8.0539 },
+      "terrain": "CAATINGA",
+      "coastal": true,
+      "deposits": [{ "resource": "PEDRA", "abundance": "ALTA" }]
+    },
+    {
+      "id": "alagoas",
+      "name": "Alagoas",
+      "mainCity": { "name": "Maceió", "lon": -35.7350, "lat": -9.6658 },
+      "terrain": "PLANICIE_FERTIL",
+      "coastal": true,
+      "deposits": [{ "resource": "PETROLEO", "abundance": "BAIXA" }]
+    },
+    {
+      "id": "sergipe",
+      "name": "Sergipe",
+      "mainCity": { "name": "Aracaju", "lon": -37.0731, "lat": -10.9472 },
+      "terrain": "PASTAGEM",
+      "coastal": true,
+      "deposits": [{ "resource": "PETROLEO", "abundance": "MEDIA" }]
+    },
+    {
+      "id": "bahia",
+      "name": "Bahia",
+      "mainCity": { "name": "Salvador", "lon": -38.5014, "lat": -12.9718 },
+      "terrain": "CAATINGA",
+      "coastal": true,
+      "deposits": [
+        { "resource": "METAL", "abundance": "ALTA" },
+        { "resource": "PETROLEO", "abundance": "MEDIA" },
+        { "resource": "PEDRA", "abundance": "MEDIA" }
+      ]
+    }
+  ],
+  "connections": [
+    ["maranhao", "piaui"],
+    ["piaui", "ceara"],
+    ["piaui", "pernambuco"],
+    ["piaui", "bahia"],
+    ["ceara", "rio-grande-do-norte"],
+    ["ceara", "paraiba"],
+    ["ceara", "pernambuco"],
+    ["rio-grande-do-norte", "paraiba"],
+    ["paraiba", "pernambuco"],
+    ["pernambuco", "alagoas"],
+    ["pernambuco", "bahia"],
+    ["alagoas", "sergipe"],
+    ["alagoas", "bahia"],
+    ["sergipe", "bahia"]
+  ],
+  "nations": [
+    {
+      "id": "parnaiba",
+      "name": "Nação do Parnaíba",
+      "capital": "piaui",
+      "startingProvinces": ["piaui", "maranhao", "ceara"]
+    },
+    {
+      "id": "sao-francisco",
+      "name": "Nação do São Francisco",
+      "capital": "bahia",
+      "startingProvinces": ["bahia", "sergipe", "alagoas"]
+    }
+  ]
+}

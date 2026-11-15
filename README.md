@@ -94,6 +94,9 @@ Frontend/
     styles/           Estilos globais e tokens visuais
   tests/             Testes da interface e dos fluxos
 
+tools/
+  mapdata/          Scripts que geram e validam os dados do mapa
+
 Docs/
   01_CONTEXTO_DO_PROJETO.md         Regras do jogo e pendências
   02_DIRECAO_DE_DESENVOLVIMENTO.md  Escopo, fases, aceitação e testes
