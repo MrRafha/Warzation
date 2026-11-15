@@ -253,6 +253,12 @@ servidor com ou sem jogadores conectados.
   `economy.skippedCycles`.
 - `MatchView.economy` traz `cycles`, `skippedCycles` e `nextCycleAt`, e é nulo
   antes do início.
+- A cada ciclo, `ProvinceProductionStep` aplica produção, demanda alimentar e
+  limite de comida nas províncias com dono. A regra está em `Backend/data/README.md`.
+- No estado da partida (`GET .../state` e `MATCH_STATE`), cada província traz
+  `buildings` (em obra ou concluídas) e `economy`, com `production` por ciclo,
+  `foodDemand`, `foodCapacity`, `foodBalance`, `foodShortageLastCycle`,
+  `foodShortageTotal` e `inFoodDeficit`. `economy` é nulo nas neutras.
 - Todo cálculo de tempo usa o `Clock` do servidor, e os testes o substituem
   por um relógio controlado.
 

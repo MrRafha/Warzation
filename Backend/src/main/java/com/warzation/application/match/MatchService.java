@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.warzation.application.CommandConflictException;
 import com.warzation.application.InvalidCommandException;
 import com.warzation.application.ResourceNotFoundException;
+import com.warzation.application.economy.ProvinceEconomy;
+import com.warzation.application.economy.ProvinceRates;
 import com.warzation.application.map.LoadedScenario;
 import com.warzation.application.map.ScenarioCatalog;
 import com.warzation.application.map.ScenarioFile;
@@ -12,6 +14,8 @@ import com.warzation.application.player.PlayerDirectory;
 import com.warzation.application.rules.GameRules;
 import com.warzation.config.MatchRulesProperties;
 import com.warzation.domain.match.Match;
+import com.warzation.domain.match.MatchBuilding;
+import com.warzation.domain.match.MatchBuildingRepository;
 import com.warzation.domain.match.MatchCommand;
 import com.warzation.domain.match.MatchCommandRepository;
 import com.warzation.domain.match.MatchEvent;
@@ -65,6 +69,7 @@ public class MatchService {
     private final ObjectMapper objectMapper;
     private final GameRules gameRules;
     private final Clock clock;
+    private final MatchBuildingRepository matchBuildings;
 
     public MatchService(
             MatchRepository matches,
@@ -81,7 +86,8 @@ public class MatchService {
             MatchEventRepository eventRepository,
             ObjectMapper objectMapper,
             GameRules gameRules,
-            Clock clock) {
+            Clock clock,
+            MatchBuildingRepository matchBuildings) {
         this.matches = matches;
         this.participants = participants;
         this.commands = commands;
@@ -97,6 +103,7 @@ public class MatchService {
         this.objectMapper = objectMapper;
         this.gameRules = gameRules;
         this.clock = clock;
+        this.matchBuildings = matchBuildings;
     }
 
     @Transactional
@@ -285,13 +292,19 @@ public class MatchService {
                 .collect(Collectors.groupingBy(MatchProvinceStock::getProvinceId));
         Map<String, MatchProvince> byId = matchProvinces.findByIdMatchId(match.getId()).stream()
                 .collect(Collectors.toMap(MatchProvince::getProvinceId, Function.identity()));
+        Map<String, List<MatchBuilding>> buildingsByProvince = matchBuildings
+                .findByMatchIdOrderByStartedAtAsc(match.getId()).stream()
+                .collect(Collectors.groupingBy(MatchBuilding::getProvinceId));
+        LoadedScenario scenario = scenarios.get(match.getScenarioId());
+        OffsetDateTime now = OffsetDateTime.now(clock);
 
         // Mesma ordem do cenário, para respostas estáveis.
-        List<MatchStateView.Province> provinces = scenarios.get(match.getScenarioId()).file().provinces().stream()
+        List<MatchStateView.Province> provinces = scenario.file().provinces().stream()
                 .map(ScenarioFile.Province::id)
                 .filter(byId::containsKey)
                 .map(id -> {
                     MatchProvince province = byId.get(id);
+                    List<MatchBuilding> buildings = buildingsByProvince.getOrDefault(id, List.of());
                     Map<String, Long> stock = new LinkedHashMap<>();
                     stockByProvince.getOrDefault(id, List.of()).stream()
                             .sorted(java.util.Comparator.comparing(MatchProvinceStock::getResource))
@@ -303,10 +316,34 @@ public class MatchService {
                             unitsByProvince.getOrDefault(id, List.of()).stream()
                                     .map(u -> new MatchStateView.Units(u.getUnitType(), u.getQuantity(), u.getOwnerNationId()))
                                     .toList(),
-                            stock);
+                            stock,
+                            buildings.stream().map(MatchService::buildingView).toList(),
+                            economyOf(scenario, province, buildings, now));
                 })
                 .toList();
         return new MatchStateView(match.getId(), match.getStatus().name(), match.getStartedAt(), provinces);
+    }
+
+    private static MatchStateView.Building buildingView(MatchBuilding building) {
+        return new MatchStateView.Building(building.getId().toString(), building.getBuildingType(),
+                building.getStatus().name(), building.getStartedAt(), building.getCompletesAt(),
+                building.getCompletedAt());
+    }
+
+    private MatchStateView.Economy economyOf(LoadedScenario scenario, MatchProvince province,
+            List<MatchBuilding> buildings, OffsetDateTime now) {
+        if (province.getOwnerNationId() == null) {
+            return null;
+        }
+        ProvinceRates rates = ProvinceEconomy.rates(
+                scenario.province(province.getProvinceId()).orElseThrow(),
+                true,
+                buildings.stream().filter(b -> b.operatingAt(now)).map(MatchBuilding::getBuildingType).toList(),
+                gameRules::building,
+                gameRules.economy());
+        return new MatchStateView.Economy(rates.production(), rates.foodDemand(), rates.foodCapacity(),
+                rates.foodBalance(), province.getFoodShortageLastCycle(), province.getFoodShortageTotal(),
+                province.inFoodDeficit());
     }
 
     @Transactional(readOnly = true)

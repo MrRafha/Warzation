@@ -17,7 +17,34 @@ public record MatchStateView(
             String ownerNationId,
             String ownerPlayerId,
             List<Units> units,
-            Map<String, Long> stock) {
+            Map<String, Long> stock,
+            List<Building> buildings,
+            Economy economy) {
+    }
+
+    /** Construção na província; {@code completedAt} nulo enquanto está em obra. */
+    public record Building(
+            String id,
+            String type,
+            String status,
+            OffsetDateTime startedAt,
+            OffsetDateTime completesAt,
+            OffsetDateTime completedAt) {
+    }
+
+    /**
+     * Economia por ciclo, calculada com as construções em funcionamento agora.
+     * Nula para províncias neutras. {@code foodBalance} = produção de comida
+     * menos demanda; {@code foodShortageLastCycle} &gt; 0 indica déficit.
+     */
+    public record Economy(
+            Map<String, Long> production,
+            long foodDemand,
+            long foodCapacity,
+            long foodBalance,
+            long foodShortageLastCycle,
+            long foodShortageTotal,
+            boolean inFoodDeficit) {
     }
 
     /** Dono nulo = guarnição neutra. */

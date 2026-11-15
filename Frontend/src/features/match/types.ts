@@ -31,7 +31,30 @@ export type MatchStateView = {
     ownerPlayerId: string | null;
     units: Array<{ type: string; quantity: number; ownerNationId: string | null }>;
     stock: Record<string, number>;
+    /** Construções (em obra ou concluídas); opcional para estados antigos. */
+    buildings?: MatchBuilding[];
+    /** Economia por ciclo; nula para províncias neutras. */
+    economy?: ProvinceEconomy | null;
   }>;
+};
+
+export type MatchBuilding = {
+  id: string;
+  type: string;
+  status: "UNDER_CONSTRUCTION" | "COMPLETED";
+  startedAt: string;
+  completesAt: string;
+  completedAt: string | null;
+};
+
+export type ProvinceEconomy = {
+  production: Record<string, number>;
+  foodDemand: number;
+  foodCapacity: number;
+  foodBalance: number;
+  foodShortageLastCycle: number;
+  foodShortageTotal: number;
+  inFoodDeficit: boolean;
 };
 
 /** Payload de MATCH_STATE no WebSocket. */

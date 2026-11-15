@@ -19,6 +19,12 @@ public class MatchProvince {
     @Column(name = "owner_nation_id", length = 50)
     private String ownerNationId;
 
+    @Column(name = "food_shortage_last_cycle", nullable = false)
+    private long foodShortageLastCycle;
+
+    @Column(name = "food_shortage_total", nullable = false)
+    private long foodShortageTotal;
+
     protected MatchProvince() {
     }
 
@@ -38,5 +44,27 @@ public class MatchProvince {
 
     public String getOwnerNationId() {
         return ownerNationId;
+    }
+
+    /** Registra quanto faltou de comida no ciclo (0 = abastecida). */
+    public void recordFoodShortage(long shortage) {
+        if (shortage < 0) {
+            throw new IllegalArgumentException("Falta de comida não pode ser negativa");
+        }
+        this.foodShortageLastCycle = shortage;
+        this.foodShortageTotal += shortage;
+    }
+
+    /** Faltou comida no último ciclo. */
+    public boolean inFoodDeficit() {
+        return foodShortageLastCycle > 0;
+    }
+
+    public long getFoodShortageLastCycle() {
+        return foodShortageLastCycle;
+    }
+
+    public long getFoodShortageTotal() {
+        return foodShortageTotal;
     }
 }
