@@ -122,8 +122,9 @@ Todas as rotas da aplicação ficam sob `/api/v1`. O corpo é sempre JSON.
 | `POST /api/v1/metadata` | Grava um par chave/valor de teste. | `201` |
 | `GET /api/v1/metadata/{key}` | Lê um par chave/valor. | `200` |
 | `GET /api/v1/rooms/{roomId}` | Estado oficial de uma sala de teste. | `200` |
-| `POST /api/v1/rooms/{roomId}/commands` | Envia um comando para a sala. | `201` aplicado, `200` reenvio |
+| `POST /api/v1/rooms/{roomId}/commands` | Envia um comando para a sala (exige identificação). | `201` aplicado, `200` reenvio |
 | `GET /api/v1/rooms/{roomId}/commands/{commandId}` | Consulta o resultado de um comando. | `200` |
+| `GET /api/v1/players/me` | Jogador do token enviado (exige identificação). | `200` com `id`, `name` |
 | `GET /api/v1/scenarios` | Lista os cenários carregados. | `200` |
 | `GET /api/v1/scenarios/{id}` | Cenário completo: `scenario` (conteúdo de `scenario.json`), `buildingSlots` e `geometry` (GeoJSON). Envia `ETag`; com `If-None-Match` igual responde `304`. | `200` |
 | `GET /api/v1/scenarios/{id}/provinces/{provinceId}/neighbours` | Vizinhos de uma província. | `200` |
@@ -146,6 +147,7 @@ Erros seguem sempre o mesmo formato e nunca expõem stack traces:
 | Status | `code` | Quando |
 |---|---|---|
 | 400 | `VALIDATION_ERROR`, `INVALID_COMMAND`, `MALFORMED_REQUEST` | Dados inválidos ou JSON ilegível. `fields` detalha cada campo. |
+| 401 | `UNAUTHENTICATED` | Ordem sem token de jogador ou com token inválido. Vem com `WWW-Authenticate: Bearer`. |
 | 404 | `NOT_FOUND` | Rota, sala, comando ou chave inexistente. |
 | 405 | `METHOD_NOT_ALLOWED` | Método HTTP não suportado na rota. |
 | 422 | `NO_ROUTE` | Não existe rota terrestre entre as províncias pedidas. |
@@ -177,6 +179,34 @@ grava a definição nas tabelas `scenario_*` (migration `V3`).
 
 Quando partidas passarem a referenciar províncias (#18), substituir um cenário
 usado por partidas exigirá um novo `id` de cenário.
+
+## Identificação de jogadores (provisória)
+
+O protótipo **não tem contas**. Existem jogadores de teste configurados no
+Backend (`application.players.test-players`), cada um com um token definido
+por variável de ambiente (`PLAYER_1_TOKEN`, `PLAYER_2_TOKEN`) ou em
+`application-local.yml`. Nenhum token real é versionado; só o perfil `test` tem
+tokens fixos, usados pelos testes automatizados.
+
+- **HTTP:** `Authorization: Bearer <token>`. Rotas de ordem usam `@CurrentPlayer`;
+  sem token válido, a resposta é `401 UNAUTHENTICATED`. Leituras públicas
+  (health, mapa) não exigem identificação.
+- **WebSocket:** navegadores não enviam cabeçalhos no handshake, então a
+  identificação é a mensagem `AUTHENTICATE`. Sem ela, `JOIN_ROOM`, `LEAVE_ROOM`
+  e `COMMAND` são recusados. Três tokens inválidos seguidos fecham a conexão,
+  e uma conexão não pode trocar de jogador.
+- **O jogador sempre vem do token**, nunca do corpo da mensagem: um campo
+  `playerId` enviado pelo cliente é ignorado. Cada comando registra o
+  `player_id` de quem o enviou, e reutilizar o `commandId` de outro jogador
+  gera `409`.
+- Tokens precisam ter ao menos 16 caracteres e ser diferentes entre si. Ficam
+  em memória só como hash SHA-256 e nunca vão para o log. Jogador com token
+  vazio fica desativado.
+- **Frontend:** o token é digitado na tela e guardado por aba
+  (`sessionStorage`), então duas abas podem ser dois jogadores.
+
+Quando houver contas de verdade, `PlayerDirectory` e `CurrentPlayerArgumentResolver`
+são os pontos a substituir.
 
 ## Comandos e idempotência
 
@@ -218,6 +248,7 @@ Cliente → servidor:
 
 | `type` | `payload` | Efeito |
 |---|---|---|
+| `AUTHENTICATE` | `{ "token" }` | Identifica a conexão e recebe `AUTHENTICATED` com `{ "id", "name" }`. Precisa vir antes das mensagens abaixo. |
 | `JOIN_ROOM` | `{ "roomId" }` | Entra na sala (sai da anterior) e recebe `ROOM_STATE`. |
 | `LEAVE_ROOM` | — | Sai da sala e recebe `LEFT_ROOM`. |
 | `COMMAND` | comando da seção anterior | Executa na sala atual e recebe `COMMAND_RESULT`. |
@@ -233,13 +264,16 @@ Servidor → cliente:
 | `type` | Quando | `payload` |
 |---|---|---|
 | `CONNECTED` | Logo após a conexão. | `{ "sessionId" }` |
+| `AUTHENTICATED` | Resposta a `AUTHENTICATE` com token válido. | `{ "id", "name" }` do jogador |
 | `ROOM_STATE` | Resposta a `JOIN_ROOM` e a **todos** da sala após cada mudança confirmada no banco. | estado da sala |
 | `COMMAND_RESULT` | Resposta a `COMMAND`, só para quem enviou. | mesmo corpo do resultado HTTP |
 | `LEFT_ROOM` | Resposta a `LEAVE_ROOM`. | — |
 | `PONG` | Resposta a `PING`. | — |
 | `ERROR` | Mensagem rejeitada. | `{ "code", "message", "fields"? }` |
 
-Códigos de `ERROR`: `INVALID_MESSAGE` (JSON inválido ou sem `type`),
+Códigos de `ERROR`: `UNAUTHENTICATED` (sem `AUTHENTICATE` ou token inválido),
+`ALREADY_AUTHENTICATED` (tentativa de trocar o jogador da conexão),
+`INVALID_MESSAGE` (JSON inválido ou sem `type`),
 `UNKNOWN_TYPE`, `NOT_IN_ROOM`, `ROOM_NOT_FOUND`, `INVALID_COMMAND`,
 `COMMAND_CONFLICT`, `INTERNAL_ERROR`. Toda rejeição é registrada no log com o
 id da sessão.
@@ -248,7 +282,7 @@ id da sessão.
 cliente. Comandos enviados por HTTP também disparam `ROOM_STATE` para a sala.
 
 **Reconexão:** o cliente reconecta com espera crescente (1 s, 2 s, 4 s... até
-10 s), envia `JOIN_ROOM` de novo e substitui o que estiver na tela pelo
+10 s), envia `AUTHENTICATE` e `JOIN_ROOM` de novo e substitui o que estiver na tela pelo
 `ROOM_STATE` recebido. O servidor não guarda estado de jogo na sessão; ela
 serve apenas para saber quem recebe as atualizações.
 

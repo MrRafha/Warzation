@@ -140,11 +140,31 @@ Rotas, formato de erro, comandos e mensagens do WebSocket estão em
 
 ## Roteiros de verificação
 
+### Jogadores de teste
+
+O protótipo não tem contas. Defina os tokens dos dois jogadores de teste antes
+de subir o Backend: pelo menos 16 caracteres cada, diferentes entre si, e nunca
+versionados.
+
+```powershell
+$env:PLAYER_1_TOKEN = "um-token-local-do-jogador-1"
+$env:PLAYER_2_TOKEN = "um-token-local-do-jogador-2"
+mvn spring-boot:run
+```
+
+Ou coloque os valores em `application-local.yml`, que está no `.gitignore`
+(veja `application-local.example.yml`). Sem token, o jogador fica desativado e
+as ordens são recusadas com `401`.
+
+No Frontend, digite o token no campo **Token do jogador de teste**. Cada aba
+guarda o próprio jogador, então duas abas podem ser os dois jogadores.
+
 ### Dois clientes em tempo real
 
 1. Inicie o PostgreSQL, o Backend e o Frontend.
 2. Abra `http://localhost:5173` em duas abas (ou dois navegadores).
-3. Nas duas, confirme "Backend conectado" e "Tempo real conectado".
+3. Entre como Jogador 1 em uma aba e como Jogador 2 na outra. Abra
+   "Ferramentas de desenvolvimento" e confirme "Tempo real conectado".
 4. Clique em **+1** em uma aba: o contador oficial muda nas duas.
 5. Clique em **Reenviar último comando**: a aba mostra "duplicado, não
    reaplicado" e o contador não muda.
@@ -160,8 +180,9 @@ Com o Backend rodando (PowerShell):
 ```powershell
 $id = [guid]::NewGuid().ToString()
 $cmd = @{ commandId = $id; type = "INCREMENT_COUNTER"; payload = @{ amount = 1 } } | ConvertTo-Json
+$auth = @{ Authorization = "Bearer $env:PLAYER_1_TOKEN" }
 Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/rooms/dev/commands `
-  -ContentType "application/json" -Body $cmd
+  -ContentType "application/json" -Headers $auth -Body $cmd
 Invoke-RestMethod http://localhost:8080/api/v1/rooms/dev
 ```
 
@@ -169,7 +190,7 @@ Invoke-RestMethod http://localhost:8080/api/v1/rooms/dev
 2. Pare o Backend (`Ctrl+C`) e inicie de novo com `mvn spring-boot:run`.
 3. Rode `Invoke-RestMethod http://localhost:8080/api/v1/rooms/dev`: os valores
    são os mesmos.
-4. Reenvie o mesmo `$cmd`: a resposta vem com `status: DUPLICATE` e o
+4. Reenvie o mesmo `$cmd` (com `-Headers $auth`): a resposta vem com `status: DUPLICATE` e o
    contador não muda.
 5. Consulte `http://localhost:8080/api/v1/rooms/dev/commands/$id` para ver o
    resultado gravado.
