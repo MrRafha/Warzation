@@ -110,8 +110,11 @@ GitHub para versionamento, em instalação local sem Docker.
 Os detalhes e responsabilidades da stack estão em
 [03_ARQUITETURA_E_STACK.md](Docs/03_ARQUITETURA_E_STACK.md).
 
-O Backend já possui persistência inicial com PostgreSQL/Flyway e o contrato
-HTTP inicial em `/api/v1/health` e `/api/v1/metadata`.
+A fundação técnica da Sprint 1 está implementada: persistência no PostgreSQL
+com Flyway, API HTTP com erros padronizados e CORS restrito, WebSocket em
+`/ws` com salas, e comandos validados pelo servidor e idempotentes, que
+sobrevivem a reinicializações. A sala de teste `dev` aparece na tela inicial
+do Frontend.
 
 ## Documentação
 

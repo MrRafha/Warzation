@@ -57,14 +57,19 @@ Esse arquivo é ignorado pelo Git.
 
 ### Frontend
 
-Quando o projeto Vite estiver criado, copie:
+Copie o arquivo de exemplo:
 
 ```powershell
 Copy-Item Frontend\.env.example Frontend\.env
 ```
 
-Ajuste `VITE_API_BASE_URL` e `VITE_WS_URL` somente se as portas locais forem
+`VITE_API_BASE_URL` e `VITE_WS_URL` são obrigatórias: sem elas a tela inicial
+avisa qual variável falta. Ajuste os valores somente se as portas locais forem
 alteradas. O arquivo `.env` também é ignorado pelo Git.
+
+Se o Frontend rodar em outra origem (outra porta ou `127.0.0.1`), libere-a no
+Backend com a variável `CORS_ALLOWED_ORIGINS`, separando várias origens por
+vírgula. Coringas (`*`) não são aceitos.
 
 ## Executar as aplicações
 
@@ -80,8 +85,9 @@ npm run dev
 ```
 
 O Backend aplica as migrations Flyway ao iniciar. Se o PostgreSQL estiver
-parado ou as credenciais estiverem incorretas, a aplicação falhará no startup
-com uma mensagem de conexão no log; corrija a configuração e execute novamente.
+parado, o banco não existir ou as credenciais estiverem incorretas, o startup
+para com um bloco `APPLICATION FAILED TO START` que explica a causa e lista o
+que conferir; corrija a configuração e execute novamente.
 
 ## Executar testes
 
@@ -113,27 +119,49 @@ O teste de integração da API grava e lê metadata usando a camada de
 persistência. A migration PostgreSQL é aplicada automaticamente no perfil
 local.
 
-## Contrato inicial da API
+## Contratos da API e do WebSocket
 
-### Saúde
+Rotas, formato de erro, comandos e mensagens do WebSocket estão em
+[03_ARQUITETURA_E_STACK.md](./03_ARQUITETURA_E_STACK.md).
 
-```text
-GET /actuator/health
-GET /api/v1/health
+## Roteiros de verificação
+
+### Dois clientes em tempo real
+
+1. Inicie o PostgreSQL, o Backend e o Frontend.
+2. Abra `http://localhost:5173` em duas abas (ou dois navegadores).
+3. Nas duas, confirme "Backend conectado" e "Tempo real conectado".
+4. Clique em **+1** em uma aba: o contador oficial muda nas duas.
+5. Clique em **Reenviar último comando**: a aba mostra "duplicado, não
+   reaplicado" e o contador não muda.
+6. Pare o Backend: as abas mostram "Reconectando...". Suba de novo: elas
+   voltam sozinhas com o mesmo contador.
+
+O teste automatizado equivalente é `RoomWebSocketTests`.
+
+### Persistência após reinicialização
+
+Com o Backend rodando (PowerShell):
+
+```powershell
+$id = [guid]::NewGuid().ToString()
+$cmd = @{ commandId = $id; type = "INCREMENT_COUNTER"; payload = @{ amount = 1 } } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/rooms/dev/commands `
+  -ContentType "application/json" -Body $cmd
+Invoke-RestMethod http://localhost:8080/api/v1/rooms/dev
 ```
 
-`/api/v1/health` retorna `200` com `status`, `service` e `version`.
+1. Anote `counter` e `version`.
+2. Pare o Backend (`Ctrl+C`) e inicie de novo com `mvn spring-boot:run`.
+3. Rode `Invoke-RestMethod http://localhost:8080/api/v1/rooms/dev`: os valores
+   são os mesmos.
+4. Reenvie o mesmo `$cmd`: a resposta vem com `status: DUPLICATE` e o
+   contador não muda.
+5. Consulte `http://localhost:8080/api/v1/rooms/dev/commands/$id` para ver o
+   resultado gravado.
 
-### Metadata de persistência
-
-```text
-POST /api/v1/metadata
-GET  /api/v1/metadata/{key}
-```
-
-O POST exige `key` e `value`. Erros de validação retornam `400` com `code`,
-`message`, `path`, `timestamp` e `fields`. Erros internos não expõem stack
-traces ou credenciais.
+O teste automatizado equivalente é `PersistenceAfterRestartTests`, que sobe a
+aplicação três vezes sobre o mesmo banco H2 em arquivo.
 
 ## Problemas comuns
 

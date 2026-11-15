@@ -112,6 +112,118 @@ Evitar depender de um processo contínuo por jogador conectado.
 - Registrar histórico de operações econômicas, militares e diplomáticas.
 - Não confiar em timers ou relógios enviados pelo navegador.
 
+## Contrato da API HTTP
+
+Todas as rotas da aplicação ficam sob `/api/v1`. O corpo é sempre JSON.
+
+| Método e rota | Uso | Sucesso |
+|---|---|---|
+| `GET /api/v1/health` | Verifica se o Backend está ativo. | `200` com `status`, `service`, `version` |
+| `POST /api/v1/metadata` | Grava um par chave/valor de teste. | `201` |
+| `GET /api/v1/metadata/{key}` | Lê um par chave/valor. | `200` |
+| `GET /api/v1/rooms/{roomId}` | Estado oficial de uma sala de teste. | `200` |
+| `POST /api/v1/rooms/{roomId}/commands` | Envia um comando para a sala. | `201` aplicado, `200` reenvio |
+| `GET /api/v1/rooms/{roomId}/commands/{commandId}` | Consulta o resultado de um comando. | `200` |
+
+Erros seguem sempre o mesmo formato e nunca expõem stack traces:
+
+```json
+{
+  "timestamp": "2026-11-15T16:00:00Z",
+  "status": 400,
+  "code": "INVALID_COMMAND",
+  "message": "Comando inválido",
+  "path": "/api/v1/rooms/dev/commands",
+  "fields": { "payload.amount": "deve estar entre 1 e 100" }
+}
+```
+
+| Status | `code` | Quando |
+|---|---|---|
+| 400 | `VALIDATION_ERROR`, `INVALID_COMMAND`, `MALFORMED_REQUEST` | Dados inválidos ou JSON ilegível. `fields` detalha cada campo. |
+| 404 | `NOT_FOUND` | Rota, sala, comando ou chave inexistente. |
+| 405 | `METHOD_NOT_ALLOWED` | Método HTTP não suportado na rota. |
+| 409 | `COMMAND_CONFLICT`, `CONFLICT` | `commandId` reutilizado com outra intenção ou conflito de gravação. |
+| 500 | `INTERNAL_ERROR` | Erro inesperado; o detalhe fica só no log do servidor. |
+
+O CORS libera apenas as origens de `CORS_ALLOWED_ORIGINS` (padrão
+`http://localhost:5173`), nos métodos `GET` e `POST`. Coringas (`*`) são
+recusados no startup.
+
+## Comandos e idempotência
+
+O cliente nunca grava estado: ele envia **comandos** (intenções) e o servidor
+decide o resultado. Não existe rota que altere o estado de uma sala
+diretamente, e campos extras no comando (por exemplo `counter`) são ignorados.
+
+```json
+{
+  "commandId": "8d0c7a2e-5b8e-4c3f-9f0a-2a7d6c1e9b44",
+  "type": "INCREMENT_COUNTER",
+  "payload": { "amount": 1 }
+}
+```
+
+- `commandId` é um UUID gerado pelo cliente. Reenviar o mesmo `commandId` (por
+  queda de rede, clique duplo ou reconexão) devolve o resultado já gravado com
+  `status: "DUPLICATE"` e não reaplica o efeito.
+- Reutilizar um `commandId` com outra sala, tipo ou conteúdo gera `409`.
+- A sala é bloqueada (`SELECT ... FOR UPDATE`) durante o comando; o efeito e o
+  registro em `processed_commands` são gravados na mesma transação.
+- `processed_commands` persiste `processed_at` e o estado resultante, então a
+  proteção contra reprocessamento continua valendo após reinicializações.
+- A sala `dev` é criada pela migration `V2` e serve como sala de teste da
+  Sprint 1. O único comando por enquanto é `INCREMENT_COUNTER`, com `amount`
+  inteiro entre 1 e 100.
+
+## Contrato do WebSocket
+
+Endpoint: `ws://<host>:8080/ws` (`VITE_WS_URL` no Frontend). O handshake só é
+aceito das origens de `CORS_ALLOWED_ORIGINS`. Mensagens são JSON com no máximo
+8 KB.
+
+Cliente → servidor:
+
+```json
+{ "type": "JOIN_ROOM", "id": "<id do cliente>", "payload": { "roomId": "dev" } }
+```
+
+| `type` | `payload` | Efeito |
+|---|---|---|
+| `JOIN_ROOM` | `{ "roomId" }` | Entra na sala (sai da anterior) e recebe `ROOM_STATE`. |
+| `LEAVE_ROOM` | — | Sai da sala e recebe `LEFT_ROOM`. |
+| `COMMAND` | comando da seção anterior | Executa na sala atual e recebe `COMMAND_RESULT`. |
+| `PING` | — | Recebe `PONG`. |
+
+Servidor → cliente:
+
+```json
+{ "type": "ROOM_STATE", "id": "<uuid>", "replyTo": "<id do cliente>", "roomId": "dev",
+  "payload": { "roomId": "dev", "counter": 3, "version": 3, "updatedAt": "..." } }
+```
+
+| `type` | Quando | `payload` |
+|---|---|---|
+| `CONNECTED` | Logo após a conexão. | `{ "sessionId" }` |
+| `ROOM_STATE` | Resposta a `JOIN_ROOM` e a **todos** da sala após cada mudança confirmada no banco. | estado da sala |
+| `COMMAND_RESULT` | Resposta a `COMMAND`, só para quem enviou. | mesmo corpo do resultado HTTP |
+| `LEFT_ROOM` | Resposta a `LEAVE_ROOM`. | — |
+| `PONG` | Resposta a `PING`. | — |
+| `ERROR` | Mensagem rejeitada. | `{ "code", "message", "fields"? }` |
+
+Códigos de `ERROR`: `INVALID_MESSAGE` (JSON inválido ou sem `type`),
+`UNKNOWN_TYPE`, `NOT_IN_ROOM`, `ROOM_NOT_FOUND`, `INVALID_COMMAND`,
+`COMMAND_CONFLICT`, `INTERNAL_ERROR`. Toda rejeição é registrada no log com o
+id da sessão.
+
+`id` identifica cada mensagem; `replyTo` liga uma resposta à mensagem do
+cliente. Comandos enviados por HTTP também disparam `ROOM_STATE` para a sala.
+
+**Reconexão:** o cliente reconecta com espera crescente (1 s, 2 s, 4 s... até
+10 s), envia `JOIN_ROOM` de novo e substitui o que estiver na tela pelo
+`ROOM_STATE` recebido. O servidor não guarda estado de jogo na sessão; ela
+serve apenas para saber quem recebe as atualizações.
+
 ## Ambiente local
 
 O projeto será executado localmente, sem Docker. A instalação de Java 21,
