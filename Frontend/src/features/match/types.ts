@@ -8,6 +8,8 @@ export type MatchView = {
   createdBy: string;
   createdAt: string;
   startedAt: string | null;
+  /** Relógio econômico; ausente ou nulo antes de a partida começar. */
+  economy?: { cycles: number; skippedCycles: number; nextCycleAt: string } | null;
   participants: Array<{ playerId: string; playerName: string; nationId: string; joinedAt: string }>;
   nations: Array<{ id: string; name: string; capital: string; playerId: string | null }>;
 };

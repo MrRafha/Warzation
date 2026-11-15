@@ -46,7 +46,7 @@ public final class GameRulesValidator {
             return;
         }
         atLeast("economy.cycleMinutes", economy.cycleMinutes(), 1, problems);
-        atLeast("economy.maxCatchUpCycles", economy.maxCatchUpCycles(), 0, problems);
+        atLeast("economy.maxCatchUpCycles", economy.maxCatchUpCycles(), 1, problems);
         atLeast("economy.foodDemandPerProvince", economy.foodDemandPerProvince(), 0, problems);
         atLeast("economy.baseFoodCapacity", economy.baseFoodCapacity(), 1, problems);
         if (economy.cancelRefundPercent() == null

@@ -13,8 +13,17 @@ public record MatchView(
         String createdBy,
         OffsetDateTime createdAt,
         OffsetDateTime startedAt,
+        Economy economy,
         List<Participant> participants,
         List<Nation> nations) {
+
+    /**
+     * Relógio econômico; nulo antes de a partida começar. {@code skippedCycles}
+     * conta ciclos descartados por excederem a recuperação após o servidor
+     * ficar desligado.
+     */
+    public record Economy(long cycles, long skippedCycles, OffsetDateTime nextCycleAt) {
+    }
 
     public record Participant(String playerId, String playerName, String nationId, OffsetDateTime joinedAt) {
     }

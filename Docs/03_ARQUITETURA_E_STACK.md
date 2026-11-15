@@ -234,6 +234,28 @@ Uma partida é criada a partir de um cenário carregado e tem estado próprio
   partidas, o Backend **não sobe** e pede um novo `id` de cenário, porque as
   partidas dependem das províncias e nações originais.
 
+### Relógio econômico
+
+A economia avança em ciclos (60 min, de `game-rules.json`), processados pelo
+servidor com ou sem jogadores conectados.
+
+- Cada partida `STARTED` guarda `next_economy_cycle_at`. O primeiro ciclo vence
+  um ciclo após o início.
+- Uma tarefa agendada verifica a cada minuto, ou a cada ciclo se `GAME_SPEED`
+  deixar o ciclo mais curto, quais partidas têm ciclo vencido. Cada partida é
+  processada na própria transação com a linha bloqueada (`FOR UPDATE`), então
+  dois processamentos simultâneos, mesmo em instâncias diferentes, nunca
+  aplicam o mesmo ciclo duas vezes.
+- Cada ciclo aplicado recebe o horário em que venceu, não o do processamento.
+  As etapas (produção, consumo, obras) implementam `EconomyCycleStep`.
+- Depois de o servidor ficar desligado, recupera até `maxCatchUpCycles` (24)
+  ciclos perdidos; os mais antigos são descartados e contados em
+  `economy.skippedCycles`.
+- `MatchView.economy` traz `cycles`, `skippedCycles` e `nextCycleAt`, e é nulo
+  antes do início.
+- Todo cálculo de tempo usa o `Clock` do servidor, e os testes o substituem
+  por um relógio controlado.
+
 ## Identificação de jogadores (provisória)
 
 O protótipo **não tem contas**. Existem jogadores de teste configurados no
