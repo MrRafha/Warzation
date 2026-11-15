@@ -29,7 +29,7 @@ class PersistenceAfterRestartTests {
         CommandResult applied;
         try (ConfigurableApplicationContext firstRun = start(jdbcUrl)) {
             RoomCommandService service = firstRun.getBean(RoomCommandService.class);
-            applied = service.execute("dev", command);
+            applied = service.execute("dev", "jogador-1", command);
             assertThat(applied.status()).isEqualTo(CommandResult.Status.APPLIED);
             assertThat(service.getState("dev").counter()).isEqualTo(3);
         }
@@ -46,7 +46,7 @@ class PersistenceAfterRestartTests {
             assertThat(stored.resultingCounter()).isEqualTo(3);
             assertThat(stored.processedAt()).isNotNull();
 
-            CommandResult resent = service.execute("dev", command);
+            CommandResult resent = service.execute("dev", "jogador-1", command);
             assertThat(resent.status()).isEqualTo(CommandResult.Status.DUPLICATE);
             assertThat(service.getState("dev").counter()).isEqualTo(3);
         }

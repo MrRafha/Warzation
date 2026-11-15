@@ -68,8 +68,8 @@ class RoomWebSocketTests {
 
     @Test
     void twoClientsInTheSameRoomReceiveTheSameUpdate() throws Exception {
-        TestClient alice = connect();
-        TestClient bob = connect();
+        TestClient alice = connectAs(TOKEN_1);
+        TestClient bob = connectAs(TOKEN_2);
 
         alice.send("JOIN_ROOM", "join-a", Map.of("roomId", roomId));
         bob.send("JOIN_ROOM", "join-b", Map.of("roomId", roomId));
@@ -82,6 +82,7 @@ class RoomWebSocketTests {
         JsonNode result = alice.next("COMMAND_RESULT");
         assertThat(result.path("replyTo").asText()).isEqualTo("cmd-1");
         assertThat(result.path("payload").path("status").asText()).isEqualTo("APPLIED");
+        assertThat(result.path("payload").path("playerId").asText()).isEqualTo("jogador-1");
 
         JsonNode aliceUpdate = alice.next("ROOM_STATE");
         JsonNode bobUpdate = bob.next("ROOM_STATE");
@@ -151,6 +152,60 @@ class RoomWebSocketTests {
     }
 
     @Test
+    void unauthenticatedSessionCannotJoinOrSendCommands() throws Exception {
+        TestClient anonymous = connect(ALLOWED_ORIGIN);
+
+        anonymous.send("JOIN_ROOM", "join", Map.of("roomId", roomId));
+        assertThat(anonymous.next("ERROR").path("payload").path("code").asText()).isEqualTo("UNAUTHENTICATED");
+        anonymous.send("COMMAND", "cmd",
+                RoomControllerTests.command(UUID.randomUUID().toString(), "INCREMENT_COUNTER", 1));
+        assertThat(anonymous.next("ERROR").path("payload").path("code").asText()).isEqualTo("UNAUTHENTICATED");
+
+        anonymous.send("AUTHENTICATE", "auth", Map.of("token", "token-que-nao-existe-123"));
+        assertThat(anonymous.next("ERROR").path("payload").path("code").asText()).isEqualTo("UNAUTHENTICATED");
+
+        assertThat(roomRepository.findById(roomId).orElseThrow().getCounterValue()).isZero();
+    }
+
+    @Test
+    void identityInTheMessageBodyIsIgnored() throws Exception {
+        TestClient alice = connectAs(TOKEN_1);
+        alice.send("JOIN_ROOM", "join", Map.of("roomId", roomId));
+        alice.next("ROOM_STATE");
+
+        Map<String, Object> command = RoomControllerTests.command(UUID.randomUUID().toString(), "INCREMENT_COUNTER", 1);
+        command.put("playerId", "jogador-2");
+        alice.send("COMMAND", "cmd", command);
+
+        assertThat(alice.next("COMMAND_RESULT").path("payload").path("playerId").asText()).isEqualTo("jogador-1");
+    }
+
+    @Test
+    void connectionCannotSwitchToAnotherPlayer() throws Exception {
+        TestClient alice = connectAs(TOKEN_1);
+
+        alice.send("AUTHENTICATE", "switch", Map.of("token", TOKEN_2));
+
+        assertThat(alice.next("ERROR").path("payload").path("code").asText()).isEqualTo("ALREADY_AUTHENTICATED");
+    }
+
+    @Test
+    void repeatedInvalidTokensCloseTheConnection() throws Exception {
+        TestClient intruder = connect(ALLOWED_ORIGIN);
+
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            intruder.send("AUTHENTICATE", "a" + attempt, Map.of("token", "token-errado-" + attempt + "-xxxxxxxx"));
+            intruder.next("ERROR");
+        }
+
+        long deadline = System.nanoTime() + TIMEOUT.toNanos();
+        while (intruder.session.isOpen() && System.nanoTime() < deadline) {
+            Thread.sleep(20);
+        }
+        assertThat(intruder.session.isOpen()).isFalse();
+    }
+
+    @Test
     void pingIsAnswered() throws Exception {
         TestClient alice = connect();
         alice.send("PING", "p1", null);
@@ -163,8 +218,19 @@ class RoomWebSocketTests {
                 .isInstanceOf(ExecutionException.class);
     }
 
+    private static final String TOKEN_1 = "token-de-teste-jogador-1";
+    private static final String TOKEN_2 = "token-de-teste-jogador-2";
+
+    /** Conecta e se identifica como jogador 1. */
     private TestClient connect() throws Exception {
-        return connect(ALLOWED_ORIGIN);
+        return connectAs(TOKEN_1);
+    }
+
+    private TestClient connectAs(String token) throws Exception {
+        TestClient client = connect(ALLOWED_ORIGIN);
+        client.send("AUTHENTICATE", "auth", Map.of("token", token));
+        assertThat(client.next("AUTHENTICATED").path("replyTo").asText()).isEqualTo("auth");
+        return client;
     }
 
     private TestClient connect(String origin) throws Exception {

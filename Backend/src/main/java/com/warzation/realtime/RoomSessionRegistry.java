@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import com.warzation.application.player.Player;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
@@ -23,6 +24,8 @@ public class RoomSessionRegistry {
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, String> roomBySession = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> sessionsByRoom = new ConcurrentHashMap<>();
+    private final Map<String, Player> playerBySession = new ConcurrentHashMap<>();
+    private final Map<String, Integer> failedAuthentications = new ConcurrentHashMap<>();
 
     /** Registra a sessão e devolve uma versão segura para envios concorrentes. */
     public WebSocketSession register(WebSocketSession session) {
@@ -65,8 +68,24 @@ public class RoomSessionRegistry {
         return members.stream().map(sessions::get).filter(session -> session != null).toList();
     }
 
+    public void authenticate(String sessionId, Player player) {
+        playerBySession.put(sessionId, player);
+        failedAuthentications.remove(sessionId);
+    }
+
+    public Optional<Player> playerOf(String sessionId) {
+        return Optional.ofNullable(playerBySession.get(sessionId));
+    }
+
+    /** Registra uma tentativa falha e devolve quantas já houve nesta sessão. */
+    public int recordFailedAuthentication(String sessionId) {
+        return failedAuthentications.merge(sessionId, 1, Integer::sum);
+    }
+
     public void remove(String sessionId) {
         leave(sessionId);
         sessions.remove(sessionId);
+        playerBySession.remove(sessionId);
+        failedAuthentications.remove(sessionId);
     }
 }

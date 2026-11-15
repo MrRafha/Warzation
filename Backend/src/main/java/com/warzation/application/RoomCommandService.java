@@ -36,15 +36,18 @@ public class RoomCommandService {
     }
 
     @Transactional
-    public CommandResult execute(String roomId, RoomCommand command) {
+    public CommandResult execute(String roomId, String playerId, RoomCommand command) {
         validate(command);
+        if (playerId == null || playerId.isBlank()) {
+            throw new com.warzation.application.player.UnauthenticatedException("Comando sem jogador identificado");
+        }
         Room room = rooms.findByIdForUpdate(requireValidRoomId(roomId))
                 .orElseThrow(() -> roomNotFound(roomId));
 
         Optional<ProcessedCommand> previous = processedCommands.findById(command.commandId());
         if (previous.isPresent()) {
             ProcessedCommand processed = previous.get();
-            if (!processed.sameIntent(roomId, command.type().name(), command.amount())) {
+            if (!processed.sameIntent(roomId, playerId, command.type().name(), command.amount())) {
                 throw new CommandConflictException(
                         "O commandId " + command.commandId() + " já foi usado por outro comando");
             }
@@ -58,6 +61,7 @@ public class RoomCommandService {
         ProcessedCommand processed = processedCommands.save(new ProcessedCommand(
                 command.commandId(),
                 room.getId(),
+                playerId,
                 command.type().name(),
                 command.amount(),
                 room.getCounterValue(),

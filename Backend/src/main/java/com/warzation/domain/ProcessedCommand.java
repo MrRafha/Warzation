@@ -38,18 +38,24 @@ public class ProcessedCommand {
     @Column(name = "processed_at", nullable = false, updatable = false)
     private OffsetDateTime processedAt;
 
+    /** Jogador que enviou o comando; nulo apenas em registros anteriores à identificação. */
+    @Column(name = "player_id", length = 50)
+    private String playerId;
+
     protected ProcessedCommand() {
     }
 
     public ProcessedCommand(
             UUID commandId,
             String roomId,
+            String playerId,
             String commandType,
             long amount,
             long resultingCounter,
             long resultingVersion) {
         this.commandId = commandId;
         this.roomId = roomId;
+        this.playerId = playerId;
         this.commandType = commandType;
         this.amount = amount;
         this.resultingCounter = resultingCounter;
@@ -57,8 +63,15 @@ public class ProcessedCommand {
         this.processedAt = OffsetDateTime.now();
     }
 
-    public boolean sameIntent(String roomId, String commandType, long amount) {
-        return this.roomId.equals(roomId) && this.commandType.equals(commandType) && this.amount == amount;
+    public boolean sameIntent(String roomId, String playerId, String commandType, long amount) {
+        return this.roomId.equals(roomId)
+                && java.util.Objects.equals(this.playerId, playerId)
+                && this.commandType.equals(commandType)
+                && this.amount == amount;
+    }
+
+    public String getPlayerId() {
+        return playerId;
     }
 
     public UUID getCommandId() {
