@@ -119,6 +119,18 @@ O teste de integração da API grava e lê metadata usando a camada de
 persistência. A migration PostgreSQL é aplicada automaticamente no perfil
 local.
 
+## Integração contínua
+
+Todo push na `main` e todo pull request rodam `.github/workflows/ci.yml`:
+
+- **Backend (testes):** `mvn verify`, com o H2 do perfil `test`;
+- **Backend (smoke com PostgreSQL):** sobe a aplicação contra um PostgreSQL 16,
+  aplica um comando, reinicia e confere persistência e idempotência
+  (`.github/scripts/postgres-smoke.sh`);
+- **Frontend (testes e build):** `npm ci`, `npm test` e `npm run build`.
+
+Um PR só deve ser mergeado com os três jobs verdes.
+
 ## Contratos da API e do WebSocket
 
 Rotas, formato de erro, comandos e mensagens do WebSocket estão em

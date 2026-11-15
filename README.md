@@ -1,5 +1,7 @@
 # Warzation
 
+[![CI](https://github.com/MrRafha/Warzation/actions/workflows/ci.yml/badge.svg)](https://github.com/MrRafha/Warzation/actions/workflows/ci.yml)
+
 Jogo de estratégia multiplayer para navegador, persistente e em tempo real. O
 projeto combina desenvolvimento civilizacional, economia, guerra, logística e
 diplomacia em um mundo compartilhado.
