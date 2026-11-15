@@ -21,6 +21,10 @@ server:
     min-response-size: 2KB
 
 application:
+  rules:
+    # Acelera o ciclo econômico e as obras para testes manuais (1 = tempo real).
+    # Ex.: GAME_SPEED=60 faz o ciclo de 1 h durar 1 min e uma Fazenda (2 h) ficar pronta em 2 min.
+    speed: ${GAME_SPEED:1}
   web:
     # Origens do navegador autorizadas na API HTTP e no WebSocket (separadas por vírgula, sem '*').
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

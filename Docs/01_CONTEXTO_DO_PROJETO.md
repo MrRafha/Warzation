@@ -595,9 +595,8 @@ As regras fundamentais estão consolidadas, mas vários valores e cadastros prec
 - lista final das nações jogáveis, capitais e províncias iniciais;
 - lista cartográfica completa das 50–60 províncias, cidades, geometrias e fronteiras;
 - fontes geográficas utilizadas para validar fronteiras, terrenos e depósitos;
-- abundância e produtividade de cada depósito;
-- custos, tempos e produção de cada construção;
-- capacidade numérica dos celeiros e estoques iniciais;
+- abundância de cada depósito no mapa completo (os multiplicadores por abundância já têm valor provisório);
+- custos, tempos e produção das construções das eras Medieval em diante, do Porto e do Banco (os da Era Antiga têm valores provisórios em `Backend/data/rules/game-rules.json`, aprovados na issue #30);
 - árvore detalhada das quatro eras e seus pré-requisitos;
 - lista, atributos e custos das unidades por era;
 - fórmula de combate, duração das rodadas e regras de chegada de reforços;

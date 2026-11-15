@@ -45,6 +45,8 @@ COMMAND=$(printf '{"commandId":"%s","type":"INCREMENT_COUNTER","payload":{"amoun
 start_backend
 expect_eq "$(curl -fsS "$API/api/v1/scenarios/nordeste-teste" | jq '.scenario.provinces | length')" "24" \
   "cenário do mapa empacotado no jar e servido pela API"
+expect_eq "$(curl -fsS "$API/api/v1/rules" | jq -r '[.buildings[].id] | join(",")')" \
+  "FAZENDA,CURRAL,CELEIRO,MINA,ACAMPAMENTO,BIBLIOTECA" "regras de jogo empacotadas no jar"
 before=$(curl -fsS "$API/api/v1/rooms/dev" | jq .counter)
 status=$(curl -sS -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
   -d "$COMMAND" "$API/api/v1/rooms/dev/commands")
