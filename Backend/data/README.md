@@ -207,3 +207,20 @@ Construções sem `production`, `extraction` nem `foodCapacityBonus`
 Para testar a economia sem esperar horas, suba o Backend com `GAME_SPEED`
 (ex.: `GAME_SPEED=60`): o ciclo e as obras ficam 60 vezes mais rápidos.
 
+### Como um ciclo é aplicado
+
+Em cada província com dono, a cada ciclo:
+
+1. soma a produção das construções **concluídas até o horário do ciclo**
+   (`production` × multiplicador do terreno; `extraction` × multiplicador da
+   abundância do primeiro depósito compatível);
+2. desconta `foodDemandPerProvince` de comida;
+3. limita a comida a `baseFoodCapacity` + `foodCapacityBonus` dos Celeiros, e o
+   excedente é perdido. Pedra e metal não têm limite.
+
+Valores fracionários são arredondados para o inteiro mais próximo (Fazenda na
+floresta: 10 × 0,75 = 7,5, vira 8). Se a comida não basta, o estoque fica em
+zero e a falta é registrada na província (`foodShortageLastCycle` e
+`foodShortageTotal`); o efeito da fome chega com logística e cercos.
+Províncias neutras não produzem nem consomem.
+

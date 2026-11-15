@@ -35,4 +35,12 @@ public class MatchProvinceStock {
     public long getAmount() {
         return amount;
     }
+
+    /** O estoque nunca fica negativo (também garantido por CHECK no banco). */
+    public void setAmount(long amount) {
+        if (amount < 0) {
+            throw new IllegalArgumentException("Estoque não pode ficar negativo: " + amount);
+        }
+        this.amount = amount;
+    }
 }

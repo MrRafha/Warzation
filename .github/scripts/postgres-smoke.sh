@@ -109,6 +109,15 @@ expect_eq "$(echo "$STATE" | jq '[.provinces[] | select(.ownerNationId == "parna
   "nação do jogador 1 com 3 províncias"
 expect_eq "$(echo "$STATE" | jq '[.provinces[] | select(.ownerNationId != null) | .units[].quantity] | add')" "12" \
   "6 infantarias por jogador"
+TERESINA_FOOD=$(echo "$STATE" | jq '.provinces[] | select(.provinceId == "pi-teresina") | .stock.COMIDA')
+if [ "$TERESINA_FOOD" -ge 60 ] || [ $((TERESINA_FOOD % 2)) -ne 0 ]; then
+  echo "FALHA: comida de Teresina não segue a demanda de 2/ciclo ($TERESINA_FOOD)" >&2; exit 1
+fi
+echo "ok: demanda alimentar aplicada no PostgreSQL (Teresina com $TERESINA_FOOD de comida)"
+expect_eq "$(echo "$STATE" | jq '.provinces[] | select(.provinceId == "pi-teresina") | .economy.foodBalance')" "-2" \
+  "saldo de comida por ciclo exposto no estado"
+expect_eq "$(echo "$STATE" | jq -c '[.provinces[] | select(.ownerNationId == null) | .economy] | unique')" "[null]" \
+  "províncias neutras fora da economia"
 expect_eq "$(curl -fsS -H "Authorization: Bearer $PLAYER_1_TOKEN" "$API/api/v1/matches/$MATCH_ID/events" \
   | jq -c '[.[].type]')" '["MATCH_CREATED","PLAYER_JOINED","PLAYER_JOINED","MATCH_STARTED"]' \
   "histórico da partida persistiu em ordem"
