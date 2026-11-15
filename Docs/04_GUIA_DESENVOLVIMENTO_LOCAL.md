@@ -173,6 +173,21 @@ guarda o próprio jogador, então duas abas podem ser os dois jogadores.
 
 O teste automatizado equivalente é `RoomWebSocketTests`.
 
+### Partida com dois jogadores
+
+1. Com os tokens configurados, abra o Frontend em duas abas.
+2. Entre como Jogador 1 em uma e como Jogador 2 na outra.
+3. Na aba do Jogador 1, crie uma partida em **Partidas abertas** e clique em
+   **Entrar** ao lado da Nação do Parnaíba.
+4. Na aba do Jogador 2, clique em **Atualizar** e entre com a Nação do São
+   Francisco. Tentar a Nação do Parnaíba mostra que ela já foi escolhida.
+5. Reinicie o Backend e atualize a lista: a partida e os dois participantes
+   continuam lá.
+
+A lista ainda não atualiza sozinha; a sincronização em tempo real da partida
+é a #20. Os testes automatizados equivalentes são `MatchControllerTests` e
+`MatchPersistenceAfterRestartTests`.
+
 ### Persistência após reinicialização
 
 Com o Backend rodando (PowerShell):

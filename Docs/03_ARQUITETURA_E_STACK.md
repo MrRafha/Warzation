@@ -125,6 +125,10 @@ Todas as rotas da aplicação ficam sob `/api/v1`. O corpo é sempre JSON.
 | `POST /api/v1/rooms/{roomId}/commands` | Envia um comando para a sala (exige identificação). | `201` aplicado, `200` reenvio |
 | `GET /api/v1/rooms/{roomId}/commands/{commandId}` | Consulta o resultado de um comando. | `200` |
 | `GET /api/v1/players/me` | Jogador do token enviado (exige identificação). | `200` com `id`, `name` |
+| `GET /api/v1/matches?status=OPEN` | Lista partidas (filtro opcional por `OPEN`, `STARTED`, `FINISHED`). | `200` |
+| `GET /api/v1/matches/{id}` | Partida com participantes e nações (livres ou de quem). | `200` |
+| `POST /api/v1/matches` | Cria partida: `{ commandId, scenarioId, name? }` (exige identificação). | `201` criada, `200` reenvio |
+| `POST /api/v1/matches/{id}/participants` | Entra escolhendo nação: `{ commandId, nationId }` (exige identificação). | `201` entrou, `200` reenvio |
 | `GET /api/v1/scenarios` | Lista os cenários carregados. | `200` |
 | `GET /api/v1/scenarios/{id}` | Cenário completo: `scenario` (conteúdo de `scenario.json`), `buildingSlots` e `geometry` (GeoJSON). Envia `ETag`; com `If-None-Match` igual responde `304`. | `200` |
 | `GET /api/v1/scenarios/{id}/provinces/{provinceId}/neighbours` | Vizinhos de uma província. | `200` |
@@ -151,6 +155,7 @@ Erros seguem sempre o mesmo formato e nunca expõem stack traces:
 | 404 | `NOT_FOUND` | Rota, sala, comando ou chave inexistente. |
 | 405 | `METHOD_NOT_ALLOWED` | Método HTTP não suportado na rota. |
 | 422 | `NO_ROUTE` | Não existe rota terrestre entre as províncias pedidas. |
+| 409 | `NATION_TAKEN`, `MATCH_FULL`, `MATCH_NOT_OPEN`, `ALREADY_JOINED` | Regra da partida impede a entrada. |
 | 409 | `COMMAND_CONFLICT`, `CONFLICT` | `commandId` reutilizado com outra intenção ou conflito de gravação. |
 | 500 | `INTERNAL_ERROR` | Erro inesperado; o detalhe fica só no log do servidor. |
 
@@ -179,6 +184,25 @@ grava a definição nas tabelas `scenario_*` (migration `V3`).
 
 Quando partidas passarem a referenciar províncias (#18), substituir um cenário
 usado por partidas exigirá um novo `id` de cenário.
+
+## Partidas
+
+Uma partida é criada a partir de um cenário carregado e tem estado próprio
+(tabelas `matches`, `match_participants`, `match_commands`, migration `V5`).
+
+- **Status:** `OPEN` aceita jogadores; `STARTED` e `FINISHED` recusam entradas
+  com `MATCH_NOT_OPEN`. O início da partida chega com a posição inicial (#19).
+- **Vagas:** uma por nação do cenário (`maxPlayers`). Cada jogador entra uma vez
+  e escolhe uma nação livre. O banco garante isso com chave primária
+  `(match_id, player_id)`, `UNIQUE (match_id, nation_id)` e chave estrangeira
+  para `scenario_nations`. A partida é bloqueada (`FOR UPDATE`) durante a
+  entrada, então duas escolhas simultâneas da mesma nação não passam.
+- **Idempotência:** criar e entrar são comandos com `commandId`, gravados em
+  `match_commands`. Um reenvio devolve `DUPLICATE` com o estado atual; usar o
+  mesmo `commandId` com outra intenção ou por outro jogador gera `409`.
+- **Cenário em uso:** se o conteúdo de um cenário mudar e ele já tiver
+  partidas, o Backend **não sobe** e pede um novo `id` de cenário, porque as
+  partidas dependem das províncias e nações originais.
 
 ## Identificação de jogadores (provisória)
 
