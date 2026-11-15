@@ -1,5 +1,7 @@
 spring:
   datasource:
+    # PostgreSQL local (padrão) ou Neon, com a conexão direta (host sem "-pooler"):
+    # jdbc:postgresql://ep-exemplo-123456.sa-east-1.aws.neon.tech/neondb?sslmode=require
     url: ${DB_URL:jdbc:postgresql://localhost:5432/warzation}
     username: ${DB_USERNAME:warzation_dev}
     password: ${DB_PASSWORD}
