@@ -5,6 +5,8 @@ set -euo pipefail
 
 API=http://localhost:8080
 APP_ARGS=()
+# Ciclo econômico de 1 s para ver o relógio andar sem esperar uma hora.
+export GAME_SPEED=3600
 JAR=$(ls Backend/target/*.jar | grep -v plain | head -1)
 PID=""
 
@@ -74,6 +76,12 @@ expect_eq "$(post_as "$PLAYER_2_TOKEN" "/api/v1/matches/$MATCH_ID/participants" 
   "{\"commandId\":\"$(cat /proc/sys/kernel/random/uuid)\",\"nationId\":\"sao-francisco\"}")" "201" "jogador 2 entrou"
 expect_eq "$(post_as "$PLAYER_1_TOKEN" "/api/v1/matches/$MATCH_ID/start" \
   "{\"commandId\":\"$(cat /proc/sys/kernel/random/uuid)\"}")" "201" "partida iniciada com a posição inicial"
+
+# O relógio econômico roda sem nenhum cliente conectado.
+sleep 4
+CYCLES_BEFORE=$(curl -fsS "$API/api/v1/matches/$MATCH_ID" | jq .economy.cycles)
+[ "$CYCLES_BEFORE" -ge 2 ] || { echo "FALHA: relógio econômico parado ($CYCLES_BEFORE ciclos)" >&2; exit 1; }
+echo "ok: relógio econômico aplicou $CYCLES_BEFORE ciclos sem clientes conectados"
 stop_backend
 
 # Segunda subida com o perfil dev-leve e a JVM limitada, como no script local.
@@ -88,6 +96,11 @@ expect_eq "$(jq -r .status /tmp/again.json)" "DUPLICATE" "reenvio marcado como D
 expect_eq "$(curl -fsS "$API/api/v1/rooms/dev" | jq .counter)" "$((before + 3))" "reenvio não duplicou"
 expect_eq "$(curl -fsS "$API/api/v1/rooms/dev/commands/$COMMAND_ID" | jq .resultingCounter)" "$((before + 3))" \
   "resultado do comando consultável"
+sleep 2
+CYCLES_AFTER=$(curl -fsS "$API/api/v1/matches/$MATCH_ID" | jq .economy.cycles)
+[ "$CYCLES_AFTER" -gt "$CYCLES_BEFORE" ] || {
+  echo "FALHA: ciclos não continuaram após reinício ($CYCLES_BEFORE -> $CYCLES_AFTER)" >&2; exit 1; }
+echo "ok: relógio econômico retomou após reinício ($CYCLES_BEFORE -> $CYCLES_AFTER ciclos)"
 expect_eq "$(curl -fsS "$API/api/v1/matches/$MATCH_ID" | jq '.participants | length')" "2" \
   "participantes da partida persistiram após reinício"
 STATE=$(curl -fsS -H "Authorization: Bearer $PLAYER_2_TOKEN" "$API/api/v1/matches/$MATCH_ID/state")

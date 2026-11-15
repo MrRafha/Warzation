@@ -1,6 +1,7 @@
 package com.warzation.domain.match;
 
 import jakarta.persistence.LockModeType;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,9 @@ public interface MatchRepository extends JpaRepository<Match, String> {
     List<Match> findByStatusOrderByCreatedAtDesc(MatchStatus status);
 
     long countByScenarioId(String scenarioId);
+
+    /** Partidas em andamento com ciclo econômico vencido (ou ainda sem agenda). */
+    @Query("select m.id from Match m where m.status = :status"
+            + " and (m.nextEconomyCycleAt is null or m.nextEconomyCycleAt <= :now) order by m.id")
+    List<String> findIdsWithEconomyDue(@Param("status") MatchStatus status, @Param("now") OffsetDateTime now);
 }

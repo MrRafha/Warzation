@@ -12,6 +12,9 @@ spring:
 
 application:
   version: test
+  economy:
+    # Os testes avançam o tempo com um relógio controlado e chamam o EconomyClock.
+    scheduler-enabled: false
   players:
     # Tokens fixos só para os testes automatizados.
     test-players:

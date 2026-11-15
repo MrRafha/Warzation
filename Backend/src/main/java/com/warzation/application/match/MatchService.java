@@ -1,5 +1,6 @@
 package com.warzation.application.match;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.warzation.application.CommandConflictException;
 import com.warzation.application.InvalidCommandException;
 import com.warzation.application.ResourceNotFoundException;
@@ -8,28 +9,30 @@ import com.warzation.application.map.ScenarioCatalog;
 import com.warzation.application.map.ScenarioFile;
 import com.warzation.application.player.Player;
 import com.warzation.application.player.PlayerDirectory;
+import com.warzation.application.rules.GameRules;
+import com.warzation.config.MatchRulesProperties;
 import com.warzation.domain.match.Match;
 import com.warzation.domain.match.MatchCommand;
 import com.warzation.domain.match.MatchCommandRepository;
 import com.warzation.domain.match.MatchEvent;
 import com.warzation.domain.match.MatchEventRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.warzation.domain.match.MatchParticipant;
 import com.warzation.domain.match.MatchParticipantRepository;
-import com.warzation.domain.match.MatchRepository;
 import com.warzation.domain.match.MatchProvince;
 import com.warzation.domain.match.MatchProvinceRepository;
 import com.warzation.domain.match.MatchProvinceStock;
 import com.warzation.domain.match.MatchProvinceStockRepository;
+import com.warzation.domain.match.MatchRepository;
 import com.warzation.domain.match.MatchStatus;
 import com.warzation.domain.match.MatchUnit;
 import com.warzation.domain.match.MatchUnitRepository;
-import com.warzation.config.MatchRulesProperties;
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
-import java.util.Set;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -60,6 +63,8 @@ public class MatchService {
     private final MatchEventLog eventLog;
     private final MatchEventRepository eventRepository;
     private final ObjectMapper objectMapper;
+    private final GameRules gameRules;
+    private final Clock clock;
 
     public MatchService(
             MatchRepository matches,
@@ -74,7 +79,9 @@ public class MatchService {
             ApplicationEventPublisher events,
             MatchEventLog eventLog,
             MatchEventRepository eventRepository,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            GameRules gameRules,
+            Clock clock) {
         this.matches = matches;
         this.participants = participants;
         this.commands = commands;
@@ -88,6 +95,8 @@ public class MatchService {
         this.eventLog = eventLog;
         this.eventRepository = eventRepository;
         this.objectMapper = objectMapper;
+        this.gameRules = gameRules;
+        this.clock = clock;
     }
 
     @Transactional
@@ -183,7 +192,7 @@ public class MatchService {
         matchProvinces.flush();
         matchUnits.saveAll(position.units());
         matchStocks.saveAll(position.stocks());
-        match.start();
+        match.start(OffsetDateTime.now(clock), gameRules.cycleDuration());
         commands.save(new MatchCommand(commandId, player.id(), MatchCommand.START_MATCH, match.getId(), null));
         eventLog.record(match.getId(), MatchEvent.MATCH_STARTED, player.id(), commandId, Map.of(
                 "nations", claimedNations.stream().sorted().toList(),
@@ -340,6 +349,8 @@ public class MatchService {
                 match.getCreatedBy(),
                 match.getCreatedAt(),
                 match.getStartedAt(),
+                match.getNextEconomyCycleAt() == null ? null : new MatchView.Economy(
+                        match.getEconomyCycles(), match.getEconomyCyclesSkipped(), match.getNextEconomyCycleAt()),
                 joined.stream()
                         .map(p -> new MatchView.Participant(p.getPlayerId(), playerName.apply(p.getPlayerId()),
                                 p.getNationId(), p.getJoinedAt()))
