@@ -32,7 +32,7 @@ O ciclo principal é:
 
 O primeiro marco valida a fundação do jogo com:
 
-- mapa de 8–12 províncias;
+- mapa de teste do Nordeste com 24 províncias (cada estado dividido em 2–3 regiões);
 - dois jogadores de teste;
 - recorte funcional das Eras Antiga e Medieval;
 - economia de comida, pedra e metal;
@@ -94,6 +94,9 @@ Frontend/
     styles/           Estilos globais e tokens visuais
   tests/             Testes da interface e dos fluxos
 
+tools/
+  mapdata/          Scripts que geram e validam os dados do mapa
+
 Docs/
   01_CONTEXTO_DO_PROJETO.md         Regras do jogo e pendências
   02_DIRECAO_DE_DESENVOLVIMENTO.md  Escopo, fases, aceitação e testes
@@ -127,6 +130,6 @@ do Frontend.
 
 ## Próximo passo
 
-Concluir a Fase 0: mapa de teste com 8–12 províncias, modelo inicial de
+Concluir a Fase 0: mapa de teste do Nordeste (24 províncias), modelo inicial de
 província e nação, dados configuráveis e protótipo visual para seleção de
 províncias no Frontend React/Vite.

@@ -35,8 +35,16 @@ Backend/src/main/resources/application-local.properties
 Thumbs.db
 Desktop.ini
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+
 # Temporary files
 *.tmp
 *.temp
 *.swp
 *~
+
+# Saída temporária do gerador de mapa
+Backend/data/scenarios/*/derived.json
